@@ -1,0 +1,130 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── Noir investigative theme ─────────────────────────────── */
+
+:root {
+  color-scheme: dark;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  background-color: #05080f;
+  color: #dfe4ee;
+  font-family: Inter, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Case-file backdrop: deep navy with faint vertical file-drawer seams */
+.bg-casefile {
+  background-color: #05080f;
+  background-image:
+    radial-gradient(1200px 500px at 50% -10%, rgba(217, 164, 65, 0.07), transparent 60%),
+    linear-gradient(180deg, #0a0f1c 0%, #05080f 100%);
+}
+
+/* Corkboard texture for the Evidence Board */
+.bg-cork {
+  background-color: #241a10;
+  background-image:
+    radial-gradient(rgba(255, 255, 255, 0.045) 1px, transparent 1.6px),
+    radial-gradient(rgba(0, 0, 0, 0.35) 1px, transparent 1.6px),
+    linear-gradient(160deg, #2b2013 0%, #1f1509 55%, #241a10 100%);
+  background-size: 7px 7px, 11px 11px, 100% 100%;
+  background-position: 0 0, 4px 6px, 0 0;
+}
+
+/* Amber scanline sweep for "digital record" documents */
+.scanlines {
+  position: relative;
+  overflow: hidden;
+}
+.scanlines::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent 0px,
+    transparent 3px,
+    rgba(0, 0, 0, 0.14) 3.5px,
+    transparent 4px
+  );
+  mix-blend-mode: multiply;
+}
+
+/* Paper document look for faxes / typed memos */
+.paper-doc {
+  background:
+    radial-gradient(120% 90% at 20% 0%, rgba(255, 255, 255, 0.25), transparent 50%),
+    #ece5d3;
+  color: #2a2419;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
+/* Scrollbars */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #263454 #0a0f1c;
+}
+*::-webkit-scrollbar {
+  width: 9px;
+  height: 9px;
+}
+*::-webkit-scrollbar-track {
+  background: #0a0f1c;
+}
+*::-webkit-scrollbar-thumb {
+  background: #263454;
+  border-radius: 6px;
+  border: 2px solid #0a0f1c;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: #3a4a6e;
+}
+
+::selection {
+  background: rgba(217, 164, 65, 0.35);
+  color: #fff8e8;
+}
+
+/* Rubber-stamp text treatment */
+.stamp {
+  font-family: "Special Elite", "Courier New", monospace;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  border: 2px solid currentColor;
+  border-radius: 4px;
+  padding: 2px 10px;
+  display: inline-block;
+  transform: rotate(-3deg);
+  opacity: 0.85;
+}
+
+/* Typewriter caret */
+.caret::after {
+  content: "▌";
+  color: #d9a441;
+  margin-left: 1px;
+  animation: caret-blink 1s steps(1) infinite;
+}
+
+/* Sticky note */
+.sticky-note {
+  background: linear-gradient(180deg, #f3e9b8 0%, #ecdf9f 100%);
+  color: #3a3010;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.45);
+}
+
+/* Focus visibility */
+:focus-visible {
+  outline: 2px solid #d9a441;
+  outline-offset: 2px;
+}
