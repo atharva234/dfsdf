@@ -73,8 +73,11 @@ export function Lobby({ onEntered }: { onEntered?: () => void }) {
         });
       }
       onEntered?.();
-    } catch {
-      setError("Could not reach the case server. Try again.");
+    } catch (err) {
+      const detail = err instanceof Error ? err.message : String(err);
+      setError(
+        `Could not reach the case server. ${detail || "Try again."} (If this says something about localhost or a failed fetch, hard-refresh with Ctrl+Shift+R — a stale page bundle is the usual cause.)`,
+      );
     } finally {
       setBusy(false);
     }

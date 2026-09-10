@@ -349,19 +349,25 @@ function CaseLoader() {
 /* ─────────────────────────── App router ─────────────────────────── */
 
 /**
- * Convex deployment URL. In the browser we always talk to the same-origin
- * /convex-url proxy (Vite forwards it to the local backend on 127.0.0.1:3210,
- * TLS included — the preview URL is https). A production/static build sets
- * VITE_CONVEX_URL to its hosted deployment instead.
+ * Convex deployment URL. In the browser we talk to the same-origin
+ * /convex-url proxy (Vite forwards it to the local backend on 127.0.0.1:3210).
+ * A VITE_CONVEX_URL of http://127.0.0.1:3210 (injected by the sandbox .env)
+ * is meaningless inside a remote browser, so only a remote https deployment
+ * URL overrides the proxy. Non-browser fallback stays the local backend.
  */
 function useConvexUrl(): string {
   return useMemo(() => {
-    const envUrl = import.meta.env.VITE_CONVEX_URL as string | undefined;
-    if (envUrl) return envUrl;
     if (typeof window !== "undefined") {
+      const envUrl = import.meta.env.VITE_CONVEX_URL as string | undefined;
+      const isRemoteDeployment =
+        envUrl &&
+        envUrl.startsWith("https://") &&
+        !envUrl.includes("localhost") &&
+        !envUrl.includes("127.0.0.1");
+      if (isRemoteDeployment && envUrl) return envUrl;
       return `${window.location.origin}/convex-url`;
     }
-    return "http://127.0.0.1:3210"; // non-browser fallback (SSR/tests)
+    return "http://127.0.0.1:3210";
   }, []);
 }
 
