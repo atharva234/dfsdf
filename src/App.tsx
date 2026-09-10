@@ -349,18 +349,19 @@ function CaseLoader() {
 /* ─────────────────────────── App router ─────────────────────────── */
 
 /**
- * Convex deployment URL. Freebuff runs the local Convex backend on port 3210;
- * the same origin proxies it at /convex-url in dev. If neither is available
- * (static production build), fall back to the configured deployment URL.
+ * Convex deployment URL. In the browser we always talk to the same-origin
+ * /convex-url proxy (Vite forwards it to the local backend on 127.0.0.1:3210,
+ * TLS included — the preview URL is https). A production/static build sets
+ * VITE_CONVEX_URL to its hosted deployment instead.
  */
 function useConvexUrl(): string {
   return useMemo(() => {
     const envUrl = import.meta.env.VITE_CONVEX_URL as string | undefined;
     if (envUrl) return envUrl;
-    if (typeof window !== "undefined" && window.location.protocol === "http:") {
+    if (typeof window !== "undefined") {
       return `${window.location.origin}/convex-url`;
     }
-    return "https://localhost:3210"; // placeholder — static builds must set VITE_CONVEX_URL
+    return "http://127.0.0.1:3210"; // non-browser fallback (SSR/tests)
   }, []);
 }
 
