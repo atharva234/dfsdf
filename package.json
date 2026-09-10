@@ -5,10 +5,12 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:preview": "bun scripts/dev.mjs",
     "build": "vite build",
     "preview": "vite preview",
     "typecheck": "tsc -b --noEmit",
-    "convex:dev": "convex dev --once"
+    "convex:dev": "convex dev --once",
+    "convex:watch": "convex dev"
   },
   "convex": {
     "functions": "convex/"
