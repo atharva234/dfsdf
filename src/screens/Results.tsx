@@ -17,8 +17,8 @@ import {
 import { useState } from "react";
 import { CASE, SUSPECTS } from "../game/case";
 import { EVIDENCE_BY_ID } from "../game/evidence";
-import { api } from "../convex/_generated/api";
-import type { Id } from "../convex/_generated/dataModel";
+import { api } from "../../convex/_generated/api";
+import type { Id } from "../../convex/_generated/dataModel";
 import { useQuery } from "convex/react";
 import { formatClock, Stamp } from "../components/ui";
 import type { VerdictResult } from "./Accusation";
@@ -31,6 +31,7 @@ type LeaderRow = {
   timeMs: number;
   correct: boolean;
   hintsUsed: number;
+  playerCount: number;
 };
 
 export function Results({

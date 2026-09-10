@@ -6,8 +6,8 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { useMutation } from "convex/react";
 import { Users, DoorOpen, Play, Loader2, Fingerprint, ShieldAlert } from "lucide-react";
-import { api } from "../convex/_generated/api";
-import type { Id } from "../convex/_generated/dataModel";
+import { api } from "../../convex/_generated/api";
+import type { Id } from "../../convex/_generated/dataModel";
 import { setSession } from "../game/store";
 
 export function Lobby({ onEntered }: { onEntered?: () => void }) {
@@ -27,10 +27,22 @@ export function Lobby({ onEntered }: { onEntered?: () => void }) {
     try {
       if (mode === "create") {
         const res = await createRoom({});
-        setSession({
-          gameId: res.gameId as Id<"games">,
-          teamId: "" as Id<"teams">,
+        // The creator registers as the room's first team so hints and the
+        // final verdict have a team record to write to.
+        const joined = await joinRoom({
           roomCode: res.roomCode,
+          teamName,
+          playerCount,
+        });
+        if ("error" in joined && joined.error) {
+          setError(joined.error);
+          setBusy(false);
+          return;
+        }
+        setSession({
+          gameId: joined.gameId as Id<"games">,
+          teamId: joined.teamId as Id<"teams">,
+          roomCode: joined.roomCode,
           teamName: teamName.trim().slice(0, 40) || "Unnamed Team",
           playerCount,
           screen: "briefing",
@@ -46,7 +58,7 @@ export function Lobby({ onEntered }: { onEntered?: () => void }) {
           teamName,
           playerCount,
         });
-        if ("error" in res) {
+        if ("error" in res && res.error) {
           setError(res.error);
           setBusy(false);
           return;

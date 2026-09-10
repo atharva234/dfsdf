@@ -4,7 +4,8 @@
  * Results. Room/team state lives in Convex; investigation progress is local.
  */
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { ConvexProvider, ConvexReactClient } from "convex/react";
 import { motion } from "framer-motion";
 import { useMutation, useQuery } from "convex/react";
 import {
@@ -21,8 +22,8 @@ import {
   FileText,
   ArrowRight,
 } from "lucide-react";
-import { api } from "./convex/_generated/api";
-import type { Id } from "./convex/_generated/dataModel";
+import { api } from "../convex/_generated/api";
+import type { Id } from "../convex/_generated/dataModel";
 import { useGameStore, setSession, resetProgress } from "./game/store";
 import { Lobby } from "./screens/Lobby";
 import { Briefing } from "./screens/Briefing";
@@ -323,7 +324,34 @@ function Landing({ onStart }: { onStart: () => void }) {
 
 /* ─────────────────────────── App router ─────────────────────────── */
 
+/**
+ * Convex deployment URL. Freebuff runs the local Convex backend on port 3210;
+ * the same origin proxies it at /convex-url in dev. If neither is available
+ * (static production build), fall back to the configured deployment URL.
+ */
+function useConvexUrl(): string {
+  return useMemo(() => {
+    const envUrl = import.meta.env.VITE_CONVEX_URL as string | undefined;
+    if (envUrl) return envUrl;
+    if (typeof window !== "undefined" && window.location.protocol === "http:") {
+      return `${window.location.origin}/convex-url`;
+    }
+    return "https://localhost:3210"; // placeholder — static builds must set VITE_CONVEX_URL
+  }, []);
+}
+
 export default function App() {
+  const convexUrl = useConvexUrl();
+  const convexClient = useMemo(
+    () => new ConvexReactClient(convexUrl),
+    [convexUrl],
+  );
+  useEffect(() => {
+    return () => {
+      void convexClient.close();
+    };
+  }, [convexClient]);
+
   const { session, collected, hints } = useGameStore();
   const [view, setView] = useState<"landing" | "lobby">("landing");
   const [verdict, setVerdict] = useState<VerdictResult | null>(null);
@@ -352,21 +380,23 @@ export default function App() {
   /* No session yet → marketing landing or lobby */
   if (!session) {
     return (
-      <div className="grain min-h-screen">
-        {view === "landing" ? (
-          <Landing onStart={() => setView("lobby")} />
-        ) : (
-          <div className="mx-auto flex min-h-screen max-w-6xl flex-col px-4 py-10 sm:px-6">
-            <button
-              onClick={() => setView("landing")}
-              className="mono-label mb-6 self-start hover:text-gold-soft"
-            >
-              ← Back to the case file
-            </button>
-            <Lobby />
-          </div>
-        )}
-      </div>
+      <ConvexProvider client={convexClient}>
+        <div className="grain min-h-screen">
+          {view === "landing" ? (
+            <Landing onStart={() => setView("lobby")} />
+          ) : (
+            <div className="mx-auto flex min-h-screen max-w-6xl flex-col px-4 py-10 sm:px-6">
+              <button
+                onClick={() => setView("landing")}
+                className="mono-label mb-6 self-start hover:text-gold-soft"
+              >
+                ← Back to the case file
+              </button>
+              <Lobby />
+            </div>
+          )}
+        </div>
+      </ConvexProvider>
     );
   }
 
@@ -375,6 +405,7 @@ export default function App() {
   const screen = session.screen;
 
   return (
+    <ConvexProvider client={convexClient}>
     <div className="grain min-h-screen">
       {(screen === "briefing" || screen === "dashboard") && !onClock && (
         <div className="mx-auto flex min-h-screen max-w-6xl flex-col px-4 py-10 sm:px-6">
@@ -430,5 +461,6 @@ export default function App() {
         </div>
       )}
     </div>
+    </ConvexProvider>
   );
 }

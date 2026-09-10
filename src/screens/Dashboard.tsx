@@ -14,8 +14,8 @@ import { SuspectsPanel } from "../components/SuspectsPanel";
 import { CaseNotes } from "../components/CaseNotes";
 import { HintSystem } from "../components/HintSystem";
 import { CaseHeader } from "../components/ui";
-import { api } from "../convex/_generated/api";
-import type { Id } from "../convex/_generated/dataModel";
+import { api } from "../../convex/_generated/api";
+import type { Id } from "../../convex/_generated/dataModel";
 import { useQuery } from "convex/react";
 
 type Tab = "evidence" | "suspects" | "notes";

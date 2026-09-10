@@ -4,9 +4,12 @@
  * full document as a scanned/digital record.
  */
 
-import { useState } from "react";
 import { motion } from "framer-motion";
-import { Check, Pin } from "lucide-react";
+import {
+  Check,
+  Pin,
+  FileText,
+} from "lucide-react";
 import { EVIDENCE } from "../game/evidence";
 import type { EvidenceDoc, EvidenceLine } from "../game/evidence";
 import { KIND_ICON, Modal, Stamp, CloseButton } from "./ui";
@@ -56,7 +59,7 @@ function DocumentModal({
   doc: EvidenceDoc | null;
   onClose: () => void;
 }) {
-  const Icon = doc ? KIND_ICON[doc.kind] : FileIconFallback;
+  const Icon = doc ? KIND_ICON[doc.kind] : FileText;
   return (
     <Modal open={!!doc} onClose={onClose} wide>
       {doc && (
@@ -94,10 +97,6 @@ function DocumentModal({
       )}
     </Modal>
   );
-}
-
-function FileIconFallback() {
-  return null;
 }
 
 export function EvidenceBoard({

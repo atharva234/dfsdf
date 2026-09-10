@@ -8,8 +8,8 @@ import { motion } from "framer-motion";
 import { Gavel, TriangleAlert, Loader2, ChevronDown, FileCheck2 } from "lucide-react";
 import { SUSPECTS } from "../game/case";
 import { EVIDENCE } from "../game/evidence";
-import { api } from "../convex/_generated/api";
-import type { Id } from "../convex/_generated/dataModel";
+import { api } from "../../convex/_generated/api";
+import type { Id } from "../../convex/_generated/dataModel";
 import { useMutation } from "convex/react";
 import { Modal, Stamp } from "../components/ui";
 
@@ -61,7 +61,7 @@ export function Accusation({
         method,
         evidenceIds,
       });
-      if ("error" in res) {
+      if ("error" in res && res.error) {
         setError(res.error);
         setConfirming(false);
       } else {

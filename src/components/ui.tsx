@@ -10,7 +10,7 @@ import {
   Mail,
   ScrollText,
   Network,
-  Fax,
+  Printer,
   FolderSearch,
   X,
   Copy,
@@ -29,7 +29,7 @@ export const KIND_ICON: Record<string, LucideIcon> = {
   email: Mail,
   "trade-log": ScrollText,
   "org-chart": Network,
-  fax: Fax,
+  fax: Printer,
   "audit-report": FolderSearch,
 };
 
@@ -160,6 +160,13 @@ export function CaseHeader({
         </div>
 
         <div className="ml-auto flex items-center gap-2 sm:gap-3">
+          <div className="hidden items-center gap-2 md:flex">
+            <span className="mono-label">Hints</span>
+            <span className="font-mono text-xs text-gold-soft">
+              {hintsUsed}/{maxHints}
+            </span>
+          </div>
+
           <div className="hidden items-center gap-2 md:flex">
             <span className="mono-label">Evidence</span>
             <div className="h-1.5 w-24 overflow-hidden rounded-full bg-ink-700">

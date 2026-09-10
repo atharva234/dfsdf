@@ -128,3 +128,197 @@ body {
   outline: 2px solid #d9a441;
   outline-offset: 2px;
 }
+
+/* ── Component utilities ─────────────────────────────────────────── */
+
+@layer components {
+  /* Typographic labels */
+  .display {
+    font-family: Spectral, Georgia, serif;
+    letter-spacing: -0.01em;
+  }
+
+  .mono-label {
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    font-size: 10px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: rgb(167 176 195 / 0.75);
+  }
+
+  /* Panels */
+  .panel {
+    border: 1px solid rgb(38 52 84 / 0.7);
+    border-radius: 0.75rem;
+    background: linear-gradient(180deg, rgb(13 20 36 / 0.92), rgb(10 15 28 / 0.94));
+    box-shadow:
+      0 18px 50px rgb(0 0 0 / 0.55),
+      0 2px 8px rgb(0 0 0 / 0.4),
+      inset 0 1px 0 rgb(255 255 255 / 0.04);
+  }
+
+  .panel-edge {
+    border: 1px solid rgb(217 164 65 / 0.16);
+    border-radius: 0.75rem;
+    background: linear-gradient(180deg, rgb(17 26 46 / 0.85), rgb(10 15 28 / 0.92));
+    box-shadow:
+      0 18px 50px rgb(0 0 0 / 0.5),
+      0 2px 8px rgb(0 0 0 / 0.35),
+      inset 0 1px 0 rgb(255 255 255 / 0.03);
+  }
+
+  /* Buttons */
+  .btn-gold {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border-radius: 0.5rem;
+    border: 1px solid rgb(217 164 65 / 0.85);
+    background: linear-gradient(180deg, rgb(217 164 65 / 0.22), rgb(217 164 65 / 0.10));
+    padding: 0.625rem 1.25rem;
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: rgb(232 197 116 / 1);
+    transition: all 0.18s ease;
+    cursor: pointer;
+  }
+  .btn-gold:hover:not(:disabled) {
+    background: linear-gradient(180deg, rgb(217 164 65 / 0.32), rgb(217 164 65 / 0.16));
+    box-shadow:
+      0 0 0 1px rgb(217 164 65 / 0.55),
+      0 0 22px rgb(217 164 65 / 0.25);
+    color: rgb(240 185 84 / 1);
+  }
+  .btn-gold:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+
+  .btn-ghost {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border-radius: 0.5rem;
+    border: 1px solid rgb(58 74 110 / 0.7);
+    background: rgb(10 15 28 / 0.6);
+    padding: 0.625rem 1.25rem;
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    font-size: 0.8125rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: rgb(167 176 195 / 1);
+    transition: all 0.18s ease;
+    cursor: pointer;
+  }
+  .btn-ghost:hover:not(:disabled) {
+    border-color: rgb(217 164 65 / 0.5);
+    color: rgb(232 197 116 / 1);
+  }
+  .btn-ghost:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+
+  .btn-danger {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border-radius: 0.5rem;
+    border: 1px solid rgb(176 54 54 / 0.8);
+    background: linear-gradient(180deg, rgb(176 54 54 / 0.28), rgb(176 54 54 / 0.14));
+    padding: 0.625rem 1.25rem;
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: rgb(235 160 150 / 1);
+    transition: all 0.18s ease;
+    cursor: pointer;
+  }
+  .btn-danger:hover:not(:disabled) {
+    background: linear-gradient(180deg, rgb(176 54 54 / 0.4), rgb(176 54 54 / 0.2));
+    box-shadow: 0 0 18px rgb(176 54 54 / 0.35);
+  }
+  .btn-danger:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+
+  /* Inputs */
+  .input-noir {
+    width: 100%;
+    border-radius: 0.5rem;
+    border: 1px solid rgb(58 74 110 / 0.8);
+    background: rgb(5 8 15 / 0.7);
+    padding: 0.625rem 0.875rem;
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    font-size: 0.875rem;
+    color: rgb(236 229 211 / 1);
+    transition: border-color 0.18s ease, box-shadow 0.18s ease;
+  }
+  .input-noir::placeholder {
+    color: rgb(167 176 195 / 0.45);
+  }
+  .input-noir:focus {
+    outline: none;
+    border-color: rgb(217 164 65 / 0.7);
+    box-shadow: 0 0 0 1px rgb(217 164 65 / 0.4), 0 0 14px rgb(217 164 65 / 0.12);
+  }
+
+  /* Aged paper sheet (modals, verdict filing) */
+  .paper-sheet {
+    border-radius: 0.375rem;
+    background:
+      radial-gradient(120% 90% at 20% 0%, rgb(255 255 255 / 0.25), transparent 50%),
+      #ece5d3;
+    color: #2a2419;
+    box-shadow: 0 14px 36px rgb(0 0 0 / 0.55);
+  }
+
+  /* Corkboard */
+  .corkboard {
+    background-color: #241a10;
+    background-image:
+      radial-gradient(rgb(255 255 255 / 0.045) 1px, transparent 1.6px),
+      radial-gradient(rgb(0 0 0 / 0.35) 1px, transparent 1.6px),
+      linear-gradient(160deg, #2b2013 0%, #1f1509 55%, #241a10 100%);
+    background-size: 7px 7px, 11px 11px, 100% 100%;
+    background-position: 0 0, 4px 6px, 0 0;
+  }
+
+  /* Gold glow for headings over the amber accent */
+  .gold-glow-text {
+    text-shadow:
+      0 0 18px rgb(217 164 65 / 0.45),
+      0 0 42px rgb(217 164 65 / 0.18);
+  }
+}
+
+/* Film-grain overlay for the noir backdrop (App shell) */
+.grain {
+  position: relative;
+  background-color: #05080f;
+  background-image:
+    radial-gradient(1200px 500px at 50% -10%, rgb(217 164 65 / 0.07), transparent 60%),
+    linear-gradient(180deg, #0a0f1c 0%, #05080f 100%);
+}
+.grain::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.05;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)' opacity='0.6'/%3E%3C/svg%3E");
+}
+.grain > * {
+  position: relative;
+  z-index: 1;
+}
