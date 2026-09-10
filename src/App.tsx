@@ -4,7 +4,7 @@
  * Results. Room/team state lives in Convex; investigation progress is local.
  */
 
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, lazy, useEffect, useMemo, useState } from "react";
 import { ConvexProvider, ConvexReactClient } from "convex/react";
 import { motion } from "framer-motion";
 import { useMutation, useQuery } from "convex/react";
@@ -25,12 +25,26 @@ import {
 import { api } from "../convex/_generated/api";
 import type { Id } from "../convex/_generated/dataModel";
 import { useGameStore, setSession, resetProgress } from "./game/store";
-import { Lobby } from "./screens/Lobby";
-import { Briefing } from "./screens/Briefing";
-import { Dashboard } from "./screens/Dashboard";
-import { Accusation } from "./screens/Accusation";
 import type { VerdictResult } from "./screens/Accusation";
-import { Results } from "./screens/Results";
+
+/* Screens are code-split: the landing page and lobby load on a minimal core
+   bundle, and each phase of the game pulls its own chunk on first navigation —
+   friendlier for 30 teams on weak venue wifi. */
+const Lobby = lazy(() =>
+  import("./screens/Lobby").then((m) => ({ default: m.Lobby })),
+);
+const Briefing = lazy(() =>
+  import("./screens/Briefing").then((m) => ({ default: m.Briefing })),
+);
+const Dashboard = lazy(() =>
+  import("./screens/Dashboard").then((m) => ({ default: m.Dashboard })),
+);
+const Accusation = lazy(() =>
+  import("./screens/Accusation").then((m) => ({ default: m.Accusation })),
+);
+const Results = lazy(() =>
+  import("./screens/Results").then((m) => ({ default: m.Results })),
+);
 
 /* ─────────────────────────── Landing page ─────────────────────────── */
 
@@ -322,6 +336,16 @@ function Landing({ onStart }: { onStart: () => void }) {
   );
 }
 
+/* ─────────────────────────── Chunk fallback ─────────────────────────── */
+
+function CaseLoader() {
+  return (
+    <div className="grid min-h-screen place-items-center">
+      <div className="mono-label animate-flicker">Retrieving case file…</div>
+    </div>
+  );
+}
+
 /* ─────────────────────────── App router ─────────────────────────── */
 
 /**
@@ -352,6 +376,16 @@ export default function App() {
     };
   }, [convexClient]);
 
+  // The provider only covers its children, so every component that calls
+  // useQuery/useMutation — AppInner included — must render inside it.
+  return (
+    <ConvexProvider client={convexClient}>
+      <AppInner />
+    </ConvexProvider>
+  );
+}
+
+function AppInner() {
   const { session, collected, hints } = useGameStore();
   const [view, setView] = useState<"landing" | "lobby">("landing");
   const [verdict, setVerdict] = useState<VerdictResult | null>(null);
@@ -380,8 +414,8 @@ export default function App() {
   /* No session yet → marketing landing or lobby */
   if (!session) {
     return (
-      <ConvexProvider client={convexClient}>
-        <div className="grain min-h-screen">
+      <div className="grain min-h-screen">
+        <Suspense fallback={<CaseLoader />}>
           {view === "landing" ? (
             <Landing onStart={() => setView("lobby")} />
           ) : (
@@ -395,8 +429,8 @@ export default function App() {
               <Lobby />
             </div>
           )}
-        </div>
-      </ConvexProvider>
+        </Suspense>
+      </div>
     );
   }
 
@@ -405,8 +439,8 @@ export default function App() {
   const screen = session.screen;
 
   return (
-    <ConvexProvider client={convexClient}>
     <div className="grain min-h-screen">
+    <Suspense fallback={<CaseLoader />}>
       {(screen === "briefing" || screen === "dashboard") && !onClock && (
         <div className="mx-auto flex min-h-screen max-w-6xl flex-col px-4 py-10 sm:px-6">
           <Briefing onBegin={begin} roomCode={session.roomCode} />
@@ -460,7 +494,7 @@ export default function App() {
           />
         </div>
       )}
+    </Suspense>
     </div>
-    </ConvexProvider>
   );
 }
