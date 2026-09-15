@@ -4,7 +4,7 @@
  * Results. Room/team state lives in Convex; investigation progress is local.
  */
 
-import { Suspense, lazy, useEffect, useMemo, useState } from "react";
+import { Suspense, lazy, useEffect, useState } from "react";
 import { ConvexProvider, ConvexReactClient } from "convex/react";
 import { motion } from "framer-motion";
 import { useMutation, useQuery } from "convex/react";
@@ -355,34 +355,27 @@ function CaseLoader() {
  * is meaningless inside a remote browser, so only a remote https deployment
  * URL overrides the proxy. Non-browser fallback stays the local backend.
  */
-function useConvexUrl(): string {
-  return useMemo(() => {
-    if (typeof window !== "undefined") {
-      const envUrl = import.meta.env.VITE_CONVEX_URL as string | undefined;
-      const isRemoteDeployment =
-        envUrl &&
-        envUrl.startsWith("https://") &&
-        !envUrl.includes("localhost") &&
-        !envUrl.includes("127.0.0.1");
-      if (isRemoteDeployment && envUrl) return envUrl;
-      return `${window.location.origin}/convex-url`;
-    }
-    return "http://127.0.0.1:3210";
-  }, []);
+function resolveConvexUrl(): string {
+  if (typeof window !== "undefined") {
+    const envUrl = import.meta.env.VITE_CONVEX_URL as string | undefined;
+    const isRemoteDeployment =
+      envUrl &&
+      envUrl.startsWith("https://") &&
+      !envUrl.includes("localhost") &&
+      !envUrl.includes("127.0.0.1");
+    if (isRemoteDeployment && envUrl) return envUrl;
+    return `${window.location.origin}/convex-url`;
+  }
+  return "http://127.0.0.1:3210";
 }
 
-export default function App() {
-  const convexUrl = useConvexUrl();
-  const convexClient = useMemo(
-    () => new ConvexReactClient(convexUrl),
-    [convexUrl],
-  );
-  useEffect(() => {
-    return () => {
-      void convexClient.close();
-    };
-  }, [convexClient]);
+/* The Convex client lives at module scope: created exactly once for the app's
+ * lifetime and never closed. StrictMode's mount→cleanup→remount cycle used to
+ * close the effect-scoped client while useMemo handed the same (now dead)
+ * instance back on remount, killing every Convex call afterwards. */
+const convexClient = new ConvexReactClient(resolveConvexUrl());
 
+export default function App() {
   // The provider only covers its children, so every component that calls
   // useQuery/useMutation — AppInner included — must render inside it.
   return (
