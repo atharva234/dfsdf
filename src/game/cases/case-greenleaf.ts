@@ -478,4 +478,18 @@ export const GREENLEAF: GameCase = {
       answerId: "f",
     },
   },
+  /* Free discovery until the full chain is authored for this case. */
+  unlocks: {
+    "ev-gl-journals": { type: "free" },
+    "ev-gl-crm": { type: "free" },
+    "ev-gl-aging": { type: "free" },
+  },
+  clues: [],
+  hotspots: [],
+  puzzle: {
+    prompt:
+      "Chain — to be authored: enter the checkpoint value recorded in the audit log.",
+    answer: "0",
+    toleranceHint: "Placeholder — replace when the Greenleaf discovery chain is authored.",
+  },
 };

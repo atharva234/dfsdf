@@ -12,7 +12,7 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
-import { ANSWER_KEYS } from "./caseAnswer";
+import { ANSWER_KEYS, PUZZLE_ANSWERS, KEYWORD_INDEX } from "./caseAnswer";
 
 const CODE_ALPHABET = "ACDEFGHJKLMNPQRTUVWXY34679";
 const MAX_TEAMS_PER_ROOM = 30;
@@ -90,6 +90,11 @@ export const joinRoom = mutation({
       timeMs: 0,
       correct: false,
       verdictEvidenceIds: [],
+      // Chained-discovery state starts empty.
+      discoveredEvidenceIds: [],
+      discoveredClueIds: [],
+      askedQuestionIds: [],
+      puzzleSolved: false,
       joinedAt: Date.now(),
     });
     await ctx.db.patch(game._id, { teamCount: game.teamCount + 1 });
@@ -178,6 +183,101 @@ export const useHint = mutation({
     await ctx.db.patch(teamId, { hintsUsed: team.hintsUsed + 1 });
     await ctx.db.patch(game._id, { hintsUsed: game.hintsUsed + 1 });
     return { ok: true, penalty: game.penaltyPerHint } as const;
+  },
+});
+
+/* ── Chained discovery ───────────────────────────────────────────
+ * Every piece of content the UI shows must be discovered first. These
+ * helpers append to the team's discovery arrays idempotently so a
+ * duplicated click (or two teammates hitting the same hotspot) is a no-op.
+ */
+
+/** Append `id` to `arr` if absent; returns the updated array or null. */
+function appendId(arr: string[] | undefined, id: string): string[] | null {
+  const list = arr ?? [];
+  return list.includes(id) ? null : [...list, id];
+}
+
+export const discoverEvidence = mutation({
+  args: { teamId: v.id("teams"), evidenceId: v.string() },
+  handler: async (ctx, { teamId, evidenceId }) => {
+    const team = await ctx.db.get(teamId);
+    if (!team) return { error: "Team not found." } as const;
+    const patch = appendId(team.discoveredEvidenceIds, evidenceId);
+    if (patch) await ctx.db.patch(teamId, { discoveredEvidenceIds: patch });
+    return { ok: true, alreadyFound: patch === null } as const;
+  },
+});
+
+export const discoverClue = mutation({
+  args: { teamId: v.id("teams"), clueId: v.string() },
+  handler: async (ctx, { teamId, clueId }) => {
+    const team = await ctx.db.get(teamId);
+    if (!team) return { error: "Team not found." } as const;
+    const patch = appendId(team.discoveredClueIds, clueId);
+    if (patch) await ctx.db.patch(teamId, { discoveredClueIds: patch });
+    return { ok: true, alreadyFound: patch === null } as const;
+  },
+});
+
+/** Log that the team asked a suspect a question (idempotent). */
+export const recordQuestionAsked = mutation({
+  args: { teamId: v.id("teams"), questionId: v.string() },
+  handler: async (ctx, { teamId, questionId }) => {
+    const team = await ctx.db.get(teamId);
+    if (!team) return { error: "Team not found." } as const;
+    const patch = appendId(team.askedQuestionIds, questionId);
+    if (patch) await ctx.db.patch(teamId, { askedQuestionIds: patch });
+    return { ok: true, alreadyAsked: patch === null } as const;
+  },
+});
+
+/**
+ * Records-Room search: match the typed term against the current case's
+ * evidence keyword unlocks and return any matches. Matches are also
+ * appended to the team's board, so "found" means "delivered".
+ */
+export const submitSearch = mutation({
+  args: { teamId: v.id("teams"), caseId: v.string(), term: v.string() },
+  handler: async (ctx, { teamId, caseId, term }) => {
+    const team = await ctx.db.get(teamId);
+    if (!team) return { error: "Team not found." } as const;
+    const key = KEYWORD_INDEX[caseId];
+    if (!key) return { error: "Unknown case." } as const;
+    const q = term.trim().toLowerCase();
+    if (!q) return { matches: [] as string[] } as const;
+    const found = key.terms.get(q) ?? [];
+    let changed = false;
+    const list = new Set(team.discoveredEvidenceIds ?? []);
+    for (const id of found) {
+      if (!list.has(id)) {
+        list.add(id);
+        changed = true;
+      }
+    }
+    if (changed) {
+      await ctx.db.patch(teamId, { discoveredEvidenceIds: [...list] });
+    }
+    return { matches: found } as const;
+  },
+});
+
+/**
+ * Forensics-Lab gate: check the answer against the case's puzzle answer.
+ * Never reveals the answer — only correct/incorrect. Sets puzzleSolved.
+ */
+export const submitPuzzleAnswer = mutation({
+  args: { teamId: v.id("teams"), caseId: v.string(), answer: v.string() },
+  handler: async (ctx, { teamId, caseId, answer }) => {
+    const team = await ctx.db.get(teamId);
+    if (!team) return { error: "Team not found." } as const;
+    const expected = PUZZLE_ANSWERS[caseId];
+    if (!expected) return { error: "Unknown case." } as const;
+    const correct = answer.trim().toLowerCase() === expected;
+    if (correct && !team.puzzleSolved) {
+      await ctx.db.patch(teamId, { puzzleSolved: true });
+    }
+    return { correct } as const;
   },
 });
 
@@ -337,6 +437,10 @@ export type TeamDoc = {
   name: string;
   caseId: string;
   playerCount: number;
+  discoveredEvidenceIds: string[];
+  discoveredClueIds: string[];
+  askedQuestionIds: string[];
+  puzzleSolved: boolean;
   hintsUsed: number;
   score: number;
   timeMs: number;

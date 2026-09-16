@@ -26,6 +26,23 @@ export const VANISHING_LEDGER: GameCase = {
     "You are the forensic review team, convened at 6:00 a.m. by the Bank of Alderney before the markets open. Somewhere in this case file is the moment the money began to vanish, the person who made it vanish, and the paper trail they left behind.",
     "Four people had the access. One of them emptied the bank. Find the who, the how, and the exhibits that prove it — then file your verdict before the clock runs out.",
   ],
+  /* ── Discovery chain ──────────────────────────────────────────────────
+   * Nothing appears by default. The team must work the scene, chase leads,
+   * search the records room, and interrogate suspects to assemble the file.
+   *
+   *   Scene:  filing-cabinet → statement 88888 (free)
+   *           terminal → clue-88888 (free): the terminal keeps failing to
+   *             reconcile A/c 88888 — the lead that opens the drawer
+   *           wastebasket → clue-audit-crumpled (free): Finding 88-B draft
+   *           desk-drawer → Ting's memo (locked until clue-88888)
+   *   Records: "88888888" pulls the fax + email together; "1762"/"charter"
+   *           surfaces the 1762 charter red herring
+   *   Interview: asking Barnard anything surfaces the 1994 audit report;
+   *           asking Hayes anything surfaces the SIMEX trade log;
+   *           Baker's confirmation question needs fax + email on the board;
+   *           Ting's escalation question needs org chart + audit report
+   *   Lab:    sum the statement's four error postings → 226
+   */
   suspects: [
     {
       id: "alex-hayes",
@@ -48,10 +65,12 @@ export const VANISHING_LEDGER: GameCase = {
         {
           q: "Tell us about the office remittances. Thirty-five million pounds in 'client margin' wired to a personal account.",
           a: "That's standard. Clients owe margin on futures positions. They're slow payers — Japanese institutions, you know how they are about paperwork. So the office sends the funds first and collects later. All documented. All in my file.",
+          unlock: { type: "evidence", requires: ["ev-statement-88888"] },
         },
         {
           q: "One document is missing from your file, Mr. Hayes. The client confirmations.",
           a: "..... (the recording continues for 11 minutes) ..... I'll need my counsel for the rest of this.",
+          unlock: { type: "evidence", requires: ["ev-fax-remittance", "ev-email-meridian"] },
         },
       ],
     },
@@ -80,6 +99,7 @@ export const VANISHING_LEDGER: GameCase = {
         {
           q: "Why didn't you escalate further?",
           a: "I did. Twice. To the Finance Director and to the regional audit. I was told both times that the matter was 'in hand'. The matter was not in hand. The matter was Mr. Hayes.",
+          unlock: { type: "evidence", requires: ["ev-orgchart", "ev-audit-1994"] },
         },
       ],
     },
@@ -197,6 +217,8 @@ export const VANISHING_LEDGER: GameCase = {
     {
       id: "ev-erroraccount-88",
       title: "Memo: Reconciliation Discrepancy — A/c 88888",
+      // Found in the desk drawer — which only opens once the terminal
+      // flags account 88888.
       kind: "audit-report",
       group: "Communications",
       date: "11 Jan 1995",
@@ -268,6 +290,7 @@ export const VANISHING_LEDGER: GameCase = {
     {
       id: "ev-fax-remittance",
       title: "Fax: Inter-Office Remittance Advice — £35,000,000",
+      // Terminal drawer: found by searching the full account number.
       kind: "fax",
       group: "Trades & Money",
       date: "24 Feb 1995 06:12",
@@ -310,6 +333,7 @@ export const VANISHING_LEDGER: GameCase = {
     {
       id: "ev-redherring-coc",
       title: "Certificate of Incorporation — Meridian Sovereign (1762)",
+      // Records Room red herring: searching the charter year surfaces it.
       kind: "bank-statement",
       group: "Ledgers & Statements",
       date: "12 Mar 1762",
@@ -357,4 +381,53 @@ export const VANISHING_LEDGER: GameCase = {
   culpritName: "Alexander Hayes",
   keyExhibitIds: ["ev-statement-88888", "ev-email-meridian", "ev-erroraccount-88"],
   verdict: {},
+  unlocks: {
+    "ev-statement-88888": { type: "free" },
+    "ev-erroraccount-88": { type: "free" },
+    "ev-fax-remittance": { type: "keyword", keywords: ["88888888"] },
+    "ev-email-meridian": { type: "keyword", keywords: ["88888888"] },
+    "ev-redherring-coc": { type: "keyword", keywords: ["1762", "charter", "incorporation"] },
+    "ev-orgchart": { type: "clue", requires: "clue-audit-crumpled" },
+    "ev-audit-1994": { type: "suspectAsked", suspectId: "geoffrey-barnard" },
+    "ev-tradelog-simex": { type: "suspectAsked", suspectId: "alex-hayes" },
+  },
+  clues: [
+    {
+      id: "clue-88888",
+      text: "The settlement terminal keeps rejecting its day-end run: 'A/C 88888 — UNRECONCILED — sweep failed.' Someone is using the error account as a warehouse.",
+    },
+    {
+      id: "clue-audit-crumpled",
+      text: "A crumpled draft memo: 'Finding 88-B — segregation of duties. UNRESOLVED.' Somebody threw away the audit trail. Find the rest of it.",
+    },
+  ],
+  hotspots: [
+    {
+      id: "hs-filing-cabinet",
+      label: "Filing cabinet",
+      reveals: { kind: "evidence", id: "ev-statement-88888" },
+    },
+    {
+      id: "hs-terminal",
+      label: "Settlement terminal",
+      reveals: { kind: "clue", id: "clue-88888" },
+    },
+    {
+      id: "hs-wastebasket",
+      label: "Wastebasket",
+      reveals: { kind: "clue", id: "clue-audit-crumpled" },
+    },
+    {
+      id: "hs-desk-drawer",
+      label: "Desk drawer — locked",
+      reveals: { kind: "evidence", id: "ev-erroraccount-88" },
+      locked: { requiresClue: "clue-88888" },
+    },
+  ],
+  puzzle: {
+    prompt:
+      "Sum the four error postings on the Statement of Account 88888 (in £ millions, Nov '94 → Jan '95) and enter the total — the amount that vanished before the balance was carried forward.",
+    answer: "226",
+    toleranceHint: "Whole number, in £ millions. The four ERROR RECT. lines only.",
+  },
 };

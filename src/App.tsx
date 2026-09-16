@@ -24,10 +24,15 @@ import {
 } from "lucide-react";
 import { api } from "../convex/_generated/api";
 import type { Id } from "../convex/_generated/dataModel";
-import { useGameStore, setSession, resetProgress } from "./game/store";
+import { useGameStore, setSession, resetProgress, collectEvidence } from "./game/store";
 import { useCase } from "./game/cases";
 import type { CaseId } from "./game/cases";
+import type { Stage } from "./screens/Dashboard";
 import type { VerdictResult } from "./screens/Accusation";
+
+/* Investigation stages that render inside the Dashboard shell, in chained
+   order: scene → records → interrogation → puzzle → caseboard → accusation. */
+const STAGE_SCREENS = new Set(["scene", "records", "interrogation", "puzzle", "caseboard"]);
 
 /* Screens are code-split: the landing page and lobby load on a minimal core
    bundle, and each phase of the game pulls its own chunk on first navigation —
@@ -394,8 +399,51 @@ function AppInner() {
   const teamId = session ? (session.teamId as Id<"teams">) : undefined;
 
   const game = useQuery(api.game.getGame, gameId ? { gameId } : "skip");
+  const team = useQuery(api.game.getTeam, teamId ? { teamId } : "skip");
   const startGame = useMutation(api.game.startGame);
   const ensureCaseDealt = useMutation(api.game.ensureCaseDealt);
+  const discoverEvidenceMut = useMutation(api.game.discoverEvidence);
+  const discoverClueMut = useMutation(api.game.discoverClue);
+  const recordQuestionMut = useMutation(api.game.recordQuestionAsked);
+  const submitSearchMut = useMutation(api.game.submitSearch);
+  const submitPuzzleAnswerMut = useMutation(api.game.submitPuzzleAnswer);
+
+  /* Shared discovery state — server-owned, empty until discovered. */
+  const discoveredEvidenceIds = team?.discoveredEvidenceIds ?? [];
+  const discoveredClueIds = team?.discoveredClueIds ?? [];
+  const askedQuestionIds = team?.askedQuestionIds ?? [];
+  const puzzleSolved = team?.puzzleSolved ?? false;
+
+  const discoverEvidence = (id: string) => {
+    void discoverEvidenceMut({ teamId: teamId as Id<"teams">, evidenceId: id });
+    collectEvidence(id); // local "viewed" tracking for the accusation screen
+  };
+  const discoverClue = (id: string) => {
+    void discoverClueMut({ teamId: teamId as Id<"teams">, clueId: id });
+  };
+  const askQuestion = async (questionId: string) => {
+    await recordQuestionMut({ teamId: teamId as Id<"teams">, questionId });
+  };
+  const runSearch = async (term: string): Promise<string[]> => {
+    const res = await submitSearchMut({
+      teamId: teamId as Id<"teams">,
+      caseId: dealtCaseId ?? "",
+      term,
+    });
+    if ("matches" in res && res.matches) {
+      for (const id of res.matches) collectEvidence(id);
+      return res.matches;
+    }
+    return [];
+  };
+  const checkPuzzle = async (answer: string): Promise<boolean> => {
+    const res = await submitPuzzleAnswerMut({
+      teamId: teamId as Id<"teams">,
+      caseId: dealtCaseId ?? "",
+      answer,
+    });
+    return "correct" in res && res.correct ? true : false;
+  };
 
   /* ── Hooks: every hook below runs unconditionally, before ANY early return.
      useCase used to sit behind the `!session` return, so joining a room
@@ -445,7 +493,7 @@ function AppInner() {
     } catch {
       /* another teammate may have started it already */
     }
-    setSession({ ...session, screen: "dashboard" });
+    setSession({ ...session, screen: "scene" });
   };
 
   /* No session yet → marketing landing or lobby */
@@ -499,7 +547,8 @@ function AppInner() {
         </div>
       )}
 
-      {(screen === "briefing" || screen === "dashboard") && onClock && (
+      {/* Chained-discovery stages, in order, before the accusation. */}
+      {(screen === "briefing" || screen === "dashboard" || STAGE_SCREENS.has(screen)) && onClock && (
         <Dashboard
           kase={kase}
           gameId={gameId as Id<"games">}
@@ -509,6 +558,17 @@ function AppInner() {
           startedAt={game.startedAt as number}
           timeLimitMs={game.timeLimitMs}
           penaltyPerHint={game.penaltyPerHint}
+          discoveredEvidenceIds={discoveredEvidenceIds}
+          discoveredClueIds={discoveredClueIds}
+          askedQuestionIds={askedQuestionIds}
+          puzzleSolved={puzzleSolved}
+          initialStage={STAGE_SCREENS.has(screen) ? (screen as Stage) : "scene"}
+          onStageChange={(s) => setSession({ ...session, screen: s })}
+          onDiscoverEvidence={discoverEvidence}
+          onDiscoverClue={discoverClue}
+          onAskQuestion={askQuestion}
+          onSearch={runSearch}
+          onSubmitPuzzleAnswer={checkPuzzle}
           onAccuse={() => setSession({ ...session, screen: "accusation" })}
           onExpire={() => setSession({ ...session, screen: "accusation" })}
           onAbandon={() => resetProgress()}

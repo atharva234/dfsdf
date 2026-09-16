@@ -1,18 +1,12 @@
 /**
- * Evidence Board — corkboard grid of clickable evidence cards.
- * Cards flip to "collected" once viewed; each opens a modal rendering the
- * full document as a scanned/digital record. Exhibits come from the team's
- * assigned case dossier (passed down as props).
+ * Evidence primitives — the scanned-document modal and the pinned exhibit
+ * card. The boards that render them (CaseBoard) only ever receive exhibits
+ * the team has actually discovered; nothing appears by default.
  */
 
-import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
-import {
-  Check,
-  Pin,
-  FileText,
-} from "lucide-react";
-import type { EvidenceDoc, EvidenceLine, GameCase } from "../game/cases/types";
+import { Check, FileText } from "lucide-react";
+import type { EvidenceDoc, EvidenceLine } from "../game/cases/types";
 import { KIND_ICON, Modal, Stamp, CloseButton } from "./ui";
 
 function DocLine({ line }: { line: EvidenceLine }) {
@@ -100,139 +94,73 @@ function DocumentModal({
   );
 }
 
-export function EvidenceBoard({
-  kase,
-  collected,
+/** One pinned exhibit card. `state`: found-but-unreviewed vs logged. */
+export function EvidenceCard({
+  doc,
+  viewed,
+  index,
   onOpen,
 }: {
-  kase: GameCase;
-  collected: string[];
+  doc: EvidenceDoc;
+  viewed: boolean;
+  index: number;
   onOpen: (doc: EvidenceDoc) => void;
 }) {
-  const groups = useMemo(
-    () => [...new Set(kase.evidence.map((d) => d.group))],
-    [kase],
-  );
-  const [group, setGroup] = useState<string | null>(null);
-  const shown = group ? kase.evidence.filter((d) => d.group === group) : kase.evidence;
-
+  const Icon = KIND_ICON[doc.kind];
+  const rotation = ((index * 37) % 7) - 3; // deterministic scatter: -3..3 deg
   return (
-    <div className="corkboard rounded-xl border border-ink-700/80 p-4 shadow-pin sm:p-6">
-      <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <div className="mono-label">Evidence Locker — {collected.length}/{kase.evidence.length} reviewed</div>
-          <h3 className="display text-lg text-paper">Case Exhibits</h3>
-        </div>
-        <div className="flex items-center gap-1.5 font-mono text-[11px] text-paper-dim/70">
-          <Pin className="h-3.5 w-3.5 text-gold/70" />
-          pin to board
-        </div>
+    <motion.button
+      onClick={() => onOpen(doc)}
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: index * 0.05, duration: 0.35 }}
+      whileHover={{ rotate: 0, scale: 1.02, zIndex: 5 }}
+      style={{ rotate: rotation }}
+      className={`group relative rounded-md border p-4 text-left shadow-pin transition-colors ${
+        viewed
+          ? "border-gold/60 bg-ink-800/90 shadow-gold-glow"
+          : "border-ink-600/70 bg-ink-850/90 hover:border-gold/40"
+      }`}
+    >
+      {/* pushpin */}
+      <span
+        className={`absolute -top-1.5 left-1/2 h-3 w-3 -translate-x-1/2 rounded-full border shadow ${
+          viewed ? "border-gold-bright bg-gold" : "border-ink-500 bg-ink-600"
+        }`}
+      />
+      <div className="mb-3 flex items-center justify-between">
+        <span
+          className={`grid h-9 w-9 place-items-center rounded-md border ${
+            viewed
+              ? "border-gold/50 bg-gold/15 text-gold-soft"
+              : "border-ink-500 bg-ink-800 text-paper-dim group-hover:text-gold-soft"
+          }`}
+        >
+          <Icon className="h-4 w-4" />
+        </span>
+        {viewed ? (
+          <span className="flex items-center gap-1 rounded-full border border-verdigris/60 bg-verdigris/15 px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider text-verdigris">
+            <Check className="h-3 w-3" /> collected
+          </span>
+        ) : (
+          <span className="font-mono text-[10px] uppercase tracking-wider text-paper-dim/50">
+            new
+          </span>
+        )}
       </div>
-
-      {groups.length > 1 && (
-        <div className="mb-4 flex flex-wrap gap-1.5">
-          <FilterChip
-            label={`All (${kase.evidence.length})`}
-            active={group === null}
-            onClick={() => setGroup(null)}
-          />
-          {groups.map((g) => (
-            <FilterChip
-              key={g}
-              label={`${g} (${kase.evidence.filter((d) => d.group === g).length})`}
-              active={group === g}
-              onClick={() => setGroup(g)}
-            />
-          ))}
-        </div>
-      )}
-
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {shown.map((doc, i) => {
-          const isCollected = collected.includes(doc.id);
-          const Icon = KIND_ICON[doc.kind];
-          const rotation = ((i * 37) % 7) - 3; // deterministic scatter: -3..3 deg
-          return (
-            <motion.button
-              key={doc.id}
-              onClick={() => onOpen(doc)}
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.05, duration: 0.35 }}
-              whileHover={{ rotate: 0, scale: 1.02, zIndex: 5 }}
-              style={{ rotate: rotation }}
-              className={`group relative rounded-md border p-4 text-left shadow-pin transition-colors ${
-                isCollected
-                  ? "border-gold/60 bg-ink-800/90 shadow-gold-glow"
-                  : "border-ink-600/70 bg-ink-850/90 hover:border-gold/40"
-              }`}
-            >
-              {/* pushpin */}
-              <span
-                className={`absolute -top-1.5 left-1/2 h-3 w-3 -translate-x-1/2 rounded-full border shadow ${
-                  isCollected ? "border-gold-bright bg-gold" : "border-ink-500 bg-ink-600"
-                }`}
-              />
-              <div className="mb-3 flex items-center justify-between">
-                <span
-                  className={`grid h-9 w-9 place-items-center rounded-md border ${
-                    isCollected
-                      ? "border-gold/50 bg-gold/15 text-gold-soft"
-                      : "border-ink-500 bg-ink-800 text-paper-dim group-hover:text-gold-soft"
-                  }`}
-                >
-                  <Icon className="h-4 w-4" />
-                </span>
-                {isCollected ? (
-                  <span className="flex items-center gap-1 rounded-full border border-verdigris/60 bg-verdigris/15 px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider text-verdigris">
-                    <Check className="h-3 w-3" /> collected
-                  </span>
-                ) : (
-                  <span className="font-mono text-[10px] uppercase tracking-wider text-paper-dim/50">
-                    unreviewed
-                  </span>
-                )}
-              </div>
-              <div className="mono-label mb-1">{doc.kind.replace("-", " ")} · {doc.group}</div>
-              <div className="display text-[15px] leading-snug text-paper group-hover:text-gold-soft">
-                {doc.title}
-              </div>
-              <div className="mt-2 line-clamp-2 text-xs leading-relaxed text-paper-dim/80">
-                {doc.excerpt}
-              </div>
-              <div className="mt-3 flex items-center justify-between border-t border-ink-600/60 pt-2 font-mono text-[10px] text-paper-dim/60">
-                <span>{doc.date}</span>
-                <span>{doc.size}</span>
-              </div>
-            </motion.button>
-          );
-        })}
+      <div className="mono-label mb-1">{doc.kind.replace("-", " ")} · {doc.group}</div>
+      <div className="display text-[15px] leading-snug text-paper group-hover:text-gold-soft">
+        {doc.title}
       </div>
-    </div>
+      <div className="mt-2 line-clamp-2 text-xs leading-relaxed text-paper-dim/80">
+        {doc.excerpt}
+      </div>
+      <div className="mt-3 flex items-center justify-between border-t border-ink-600/60 pt-2 font-mono text-[10px] text-paper-dim/60">
+        <span>{doc.date}</span>
+        <span>{doc.size}</span>
+      </div>
+    </motion.button>
   );
 }
 
 export { DocumentModal };
-
-function FilterChip({
-  label,
-  active,
-  onClick,
-}: {
-  label: string;
-  active: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className={`rounded-full border px-3 py-1 font-mono text-[11px] uppercase tracking-wider transition-colors ${
-        active
-          ? "border-gold/60 bg-gold/15 text-gold-soft"
-          : "border-ink-500/60 bg-ink-900/50 text-paper-dim hover:border-gold/30 hover:text-paper"
-      }`}
-    >
-      {label}
-    </button>
-  );
-}

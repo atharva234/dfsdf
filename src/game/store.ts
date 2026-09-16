@@ -14,7 +14,21 @@ export type Session = {
   playerCount: number;
   /** The case this team was dealt — assigned server-side at join time. */
   caseId: string | null;
-  screen: "briefing" | "dashboard" | "accusation" | "results";
+  /**
+   * Investigation stages in chained order — nothing appears by default:
+   * work the scene → search the records → interrogate → forensics lab
+   * (puzzle gate) → case board (assemble the file) → accusation.
+   */
+  screen:
+    | "briefing"
+    | "dashboard"
+    | "scene"
+    | "records"
+    | "interrogation"
+    | "puzzle"
+    | "caseboard"
+    | "accusation"
+    | "results";
 };
 
 type ProgressState = {

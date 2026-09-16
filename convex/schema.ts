@@ -25,6 +25,13 @@ export default defineSchema({
     // pre-rotation rows in an existing deployment still validate.
     caseId: v.optional(v.string()),
     playerCount: v.number(),
+    // Chained-discovery progress. Evidence/clues enter these lists only via
+    // discoverEvidence / discoverClue — the UI never shows undiscovered items.
+    // Optional so legacy team rows in an existing deployment still validate.
+    discoveredEvidenceIds: v.optional(v.array(v.string())),
+    discoveredClueIds: v.optional(v.array(v.string())),
+    askedQuestionIds: v.optional(v.array(v.string())),
+    puzzleSolved: v.optional(v.boolean()),
     hintsUsed: v.number(),
     score: v.number(),
     timeMs: v.number(),

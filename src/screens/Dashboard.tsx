@@ -1,29 +1,43 @@
 /**
- * Investigation Dashboard — the main screen. Sidebar navigation across
- * Evidence Board / Suspects / Case Notes, with the informant (hint) panel
- * docked in the rail and the scanned-document modal.
+ * Investigation Dashboard — the shell for the chained-discovery stages:
+ * Crime Scene → Records Room → Interrogation → Forensics Lab → Case Board,
+ * with the informant (hint) panel docked in the rail and the countdown.
+ * Content ownership lives in each stage screen; this shell carries the
+ * team's shared discovery state down to whichever stage is active.
  */
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { FolderSearch, Users, StickyNote, Siren } from "lucide-react";
-import type { EvidenceDoc, GameCase } from "../game/cases/types";
-import { useGameStore, collectEvidence, revealHint } from "../game/store";
-import { EvidenceBoard, DocumentModal } from "../components/EvidenceBoard";
-import { SuspectsPanel } from "../components/SuspectsPanel";
-import { CaseNotes } from "../components/CaseNotes";
+import {
+  Archive,
+  ScanSearch,
+  Users,
+  FlaskConical,
+  Pin,
+  Siren,
+} from "lucide-react";
+import type { GameCase } from "../game/cases/types";
+import { useGameStore, revealHint, collectEvidence } from "../game/store";
 import { HintSystem } from "../components/HintSystem";
 import { CaseHeader } from "../components/ui";
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
 import { useQuery } from "convex/react";
 
-type Tab = "evidence" | "suspects" | "notes";
+import { CrimeScene } from "./CrimeScene";
+import { RecordsRoom } from "./RecordsRoom";
+import { Interrogation } from "./Interrogation";
+import { ForensicsLab } from "./ForensicsLab";
+import { CaseBoard } from "./CaseBoard";
 
-const TABS: { key: Tab; label: string; icon: typeof FolderSearch; blurb: string }[] = [
-  { key: "evidence", label: "Evidence Board", icon: FolderSearch, blurb: "Case exhibits" },
-  { key: "suspects", label: "Suspects", icon: Users, blurb: "Interview room" },
-  { key: "notes", label: "Case Notes", icon: StickyNote, blurb: "Shared deductions" },
+export type Stage = "scene" | "records" | "interrogation" | "puzzle" | "caseboard";
+
+const STAGES: { key: Stage; label: string; icon: typeof Archive; blurb: string }[] = [
+  { key: "scene", label: "Crime Scene", icon: Archive, blurb: "Search the office" },
+  { key: "records", label: "Records Room", icon: ScanSearch, blurb: "Query the archive" },
+  { key: "interrogation", label: "Interrogation", icon: Users, blurb: "Press the suspects" },
+  { key: "puzzle", label: "Forensics Lab", icon: FlaskConical, blurb: "Quantify the loss" },
+  { key: "caseboard", label: "Case Board", icon: Pin, blurb: "Assemble the file" },
 ];
 
 export function Dashboard({
@@ -35,6 +49,17 @@ export function Dashboard({
   startedAt,
   timeLimitMs,
   penaltyPerHint,
+  discoveredEvidenceIds,
+  discoveredClueIds,
+  askedQuestionIds,
+  puzzleSolved,
+  initialStage,
+  onStageChange,
+  onDiscoverEvidence,
+  onDiscoverClue,
+  onAskQuestion,
+  onSearch,
+  onSubmitPuzzleAnswer,
   onAccuse,
   onExpire,
   onAbandon,
@@ -47,23 +72,35 @@ export function Dashboard({
   startedAt: number;
   timeLimitMs: number;
   penaltyPerHint: number;
+  /** Shared, server-owned discovery state. */
+  discoveredEvidenceIds: string[];
+  discoveredClueIds: string[];
+  askedQuestionIds: string[];
+  puzzleSolved: boolean;
+  /** Stage to open on (persisted in session.screen when it's a stage key). */
+  initialStage: Stage;
+  /** Persists stage navigation into the session for refresh survival. */
+  onStageChange: (stage: Stage) => void;
+  onDiscoverEvidence: (id: string) => void;
+  onDiscoverClue: (id: string) => void;
+  onAskQuestion: (questionId: string) => Promise<void>;
+  onSearch: (term: string) => Promise<string[]>;
+  onSubmitPuzzleAnswer: (answer: string) => Promise<boolean>;
   onAccuse: () => void;
   onExpire: () => void;
   onAbandon: () => void;
 }) {
-  const { collected, hints } = useGameStore();
-  const [tab, setTab] = useState<Tab>("evidence");
-  const [openDoc, setOpenDoc] = useState<EvidenceDoc | null>(null);
+  const { hints, collected } = useGameStore();
+  const [stage, setStage] = useState<Stage>(initialStage);
+  const selectStage = (s: Stage) => {
+    setStage(s);
+    onStageChange(s);
+  };
   const notes = useQuery(api.game.getNotes, { gameId }) as
     | { _id: Id<"notes">; author: string; body: string; createdAt: number }[]
     | undefined;
 
   const endsAt = startedAt + timeLimitMs;
-
-  const openEvidence = (doc: EvidenceDoc) => {
-    collectEvidence(doc.id);
-    setOpenDoc(doc);
-  };
 
   return (
     <div className="min-h-screen">
@@ -72,7 +109,7 @@ export function Dashboard({
         teamName={teamName}
         caseNo={kase.caseNo}
         caseTitle={kase.title}
-        evidenceCollected={collected.length}
+        evidenceCollected={discoveredEvidenceIds.length}
         evidenceTotal={kase.evidence.length}
         hintsUsed={hints.length}
         maxHints={kase.hints.length}
@@ -86,30 +123,34 @@ export function Dashboard({
         {/* Side rail */}
         <aside className="space-y-4">
           <nav className="panel-edge overflow-hidden">
-            {TABS.map(({ key, label, icon: Icon, blurb }) => (
-              <button
-                key={key}
-                onClick={() => setTab(key)}
-                className={`flex w-full items-center gap-3 border-b border-ink-600/50 px-4 py-3 text-left transition-colors last:border-0 ${
-                  tab === key
-                    ? "bg-gold/10 text-gold-soft"
-                    : "text-paper-dim hover:bg-ink-800/60 hover:text-paper"
-                }`}
-              >
-                <Icon className={`h-4 w-4 ${tab === key ? "text-gold" : ""}`} />
-                <span className="min-w-0">
-                  <span className="block text-sm font-medium">{label}</span>
-                  <span className="block font-mono text-[10px] uppercase tracking-wider opacity-60">
-                    {blurb}
+            {STAGES.map(({ key, label, icon: Icon, blurb }, i) => {
+              const done =
+                (key === "caseboard" && discoveredEvidenceIds.length > 0) ||
+                (key === "puzzle" && puzzleSolved);
+              return (
+                <button
+                  key={key}
+                  onClick={() => selectStage(key)}
+                  className={`flex w-full items-center gap-3 border-b border-ink-600/50 px-4 py-3 text-left transition-colors last:border-0 ${
+                    stage === key
+                      ? "bg-gold/10 text-gold-soft"
+                      : "text-paper-dim hover:bg-ink-800/60 hover:text-paper"
+                  }`}
+                >
+                  <span className="font-mono text-[10px] text-paper-dim/50">
+                    {String(i + 1).padStart(2, "0")}
                   </span>
-                </span>
-                {key === "notes" && notes && notes.length > 0 && (
-                  <span className="ml-auto rounded-full border border-gold/40 px-1.5 font-mono text-[10px] text-gold-soft">
-                    {notes.length}
+                  <Icon className={`h-4 w-4 ${stage === key ? "text-gold" : ""}`} />
+                  <span className="min-w-0">
+                    <span className="block text-sm font-medium">{label}</span>
+                    <span className="block font-mono text-[10px] uppercase tracking-wider opacity-60">
+                      {blurb}
+                    </span>
                   </span>
-                )}
-              </button>
-            ))}
+                  {done && <span className="ml-auto h-1.5 w-1.5 rounded-full bg-verdigris" />}
+                </button>
+              );
+            })}
           </nav>
 
           <HintSystem
@@ -140,30 +181,65 @@ export function Dashboard({
         <main className="min-w-0">
           <AnimatePresence mode="wait">
             <motion.div
-              key={tab}
+              key={stage}
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -8 }}
               transition={{ duration: 0.2 }}
             >
-              {tab === "evidence" && (
-                <EvidenceBoard kase={kase} collected={collected} onOpen={openEvidence} />
+              {stage === "scene" && (
+                <CrimeScene
+                  kase={kase}
+                  discoveredEvidenceIds={discoveredEvidenceIds}
+                  discoveredClueIds={discoveredClueIds}
+                  onDiscoverEvidence={onDiscoverEvidence}
+                  onDiscoverClue={onDiscoverClue}
+                />
               )}
-              {tab === "suspects" && <SuspectsPanel kase={kase} />}
-              {tab === "notes" && notes && (
-                <CaseNotes gameId={gameId} notes={notes} teamName={teamName} />
+
+              {stage === "records" && (
+                <RecordsRoom kase={kase} onSearch={onSearch} />
               )}
-              {tab === "notes" && !notes && (
-                <div className="panel-edge p-8 text-center text-sm text-paper-dim/60">
-                  Opening the shared notepad…
-                </div>
+
+              {stage === "interrogation" && (
+                <Interrogation
+                  kase={kase}
+                  discoveredEvidenceIds={discoveredEvidenceIds}
+                  askedQuestionIds={askedQuestionIds}
+                  onAskQuestion={onAskQuestion}
+                  onEvidenceUnlocked={onDiscoverEvidence}
+                />
+              )}
+
+              {stage === "puzzle" && (
+                <ForensicsLab
+                  kase={kase}
+                  solved={puzzleSolved}
+                  onSubmitAnswer={onSubmitPuzzleAnswer}
+                  onNext={() => selectStage("caseboard")}
+                />
+              )}
+
+              {stage === "caseboard" && (
+                <CaseBoard
+                  kase={kase}
+                  gameId={gameId}
+                  teamName={teamName}
+                  notes={notes}
+                  discoveredEvidenceIds={discoveredEvidenceIds}
+                  discoveredClueIds={discoveredClueIds}
+                  viewedEvidence={collected}
+                  onViewEvidence={collectEvidence}
+                  onGoScene={() => selectStage("scene")}
+                  onGoRecords={() => selectStage("records")}
+                  onGoInterrogation={() => selectStage("interrogation")}
+                />
               )}
             </motion.div>
           </AnimatePresence>
         </main>
       </div>
 
-      <DocumentModal doc={openDoc} onClose={() => setOpenDoc(null)} />
     </div>
   );
 }

@@ -688,4 +688,18 @@ export const NOVATECH: GameCase = {
       answerId: "b",
     },
   },
+  /* Free discovery until the full chain is authored for this case. */
+  unlocks: {
+    "ev-nv-doc-c": { type: "free" },
+    "ev-nv-doc-d": { type: "free" },
+    "ev-nv-audit-log": { type: "free" },
+  },
+  clues: [],
+  hotspots: [],
+  puzzle: {
+    prompt:
+      "Chain — to be authored: enter the checkpoint value recorded in the audit log.",
+    answer: "0",
+    toleranceHint: "Placeholder — replace when the Nova-Tech discovery chain is authored.",
+  },
 };

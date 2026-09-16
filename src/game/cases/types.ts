@@ -1,8 +1,11 @@
 /**
  * Case-file data model. Every case in the rotation is authored as a `GameCase`
  * — briefing, suspects, evidence exhibits, hints, solution and verdict fields —
- * so the same five screens (brief → dashboard → accusation → results) render
- * any case the server deals a team.
+ * so the same screens (brief → crime scene → records/interrogation → forensics
+ * lab → accusation → results) render any case the server deals a team.
+ *
+ * Nothing appears by default: every exhibit and clue enters the team's
+ * possession only through a hotspot, search, or interview — see EvidenceUnlock.
  */
 
 export type EvidenceKind =
@@ -41,6 +44,24 @@ export type EvidenceDoc = {
   lines: EvidenceLine[];
 };
 
+/**
+ * How an exhibit or clue enters the team's possession. `free` items sit out in
+ * the open (scene hotspots, desk trays); everything else must be earned —
+ * via a clue (a discovered number/lead), a keyword search in the Records
+ * Room, or by interviewing a suspect.
+ */
+export type EvidenceUnlock =
+  | { type: "free" }
+  | { type: "clue"; requires: string }
+  | { type: "keyword"; keywords: string[] }
+  | { type: "suspectAsked"; suspectId: string };
+
+/**
+ * A follow-up interview question is only offered once its gating evidence is
+ * on the team's board (all listed exhibits must be discovered).
+ */
+export type QuestionUnlock = { type: "evidence"; requires: string[] };
+
 export type Suspect = {
   id: string;
   name: string;
@@ -48,8 +69,27 @@ export type Suspect = {
   location: string;
   age: number;
   motive: string;
-  transcript: { q: string; a: string }[];
+  transcript: { q: string; a: string; unlock?: QuestionUnlock }[];
   tell: string;
+};
+
+/** Lightweight discoverable token — a lead the team carries between stages. */
+export type Clue = { id: string; text: string };
+
+/** A clickable zone on the Crime Scene stage. */
+export type Hotspot = {
+  id: string;
+  label: string;
+  reveals: { kind: "evidence" | "clue"; id: string };
+  /** When set, the hotspot demands the given clue before it opens. */
+  locked?: { requiresClue: string };
+};
+
+/** The Forensics Lab gate — solved before the team may file a verdict. */
+export type Puzzle = {
+  prompt: string;
+  answer: string;
+  toleranceHint: string;
 };
 
 export type Hint = { id: string; cost: number; text: string };
@@ -85,6 +125,14 @@ export type GameCase = {
   methodPlaceholder: string;
   suspects: Suspect[];
   evidence: EvidenceDoc[];
+  /** How each exhibit is found — defaults handled in-game as free. */
+  unlocks: Record<string, EvidenceUnlock>;
+  /** Discoverable leads carried between stages (scene → records/interrogation). */
+  clues: Clue[];
+  /** Crime Scene stage zones. */
+  hotspots: Hotspot[];
+  /** Forensics Lab gate. */
+  puzzle: Puzzle;
   hints: Hint[];
   solution: { headline: string; points: string[] };
   culpritName: string;
