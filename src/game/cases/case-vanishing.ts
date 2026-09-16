@@ -421,7 +421,7 @@ export const VANISHING_LEDGER: GameCase = {
       id: "hs-desk-drawer",
       label: "Desk drawer — locked",
       reveals: { kind: "evidence", id: "ev-erroraccount-88" },
-      locked: { requiresClue: "clue-88888" },
+      locked: { requiresClue: "clue-88888", combination: "88888" },
     },
   ],
   puzzle: {

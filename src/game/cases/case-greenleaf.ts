@@ -46,10 +46,12 @@ export const GREENLEAF: GameCase = {
         {
           q: "Six fictitious distributor accounts. One of them was created 48 hours after that email.",
           a: "(long pause) I approved the bonus pool based on reported revenue. If the revenue was fabricated, then I was the audience of the fabrication, not its author. My crime is credulity, and I'll wear it.",
+          unlock: { type: "evidence", requires: ["ev-gl-journals"] },
         },
         {
           q: "You also signed the aging-report waiver that let Q3 receivables skip review.",
           a: "The waiver was standard — the AR team flagged it as a system migration issue. I signed what was put in front of me. That is exactly the problem, isn't it? Nobody put anything in front of me that was true.",
+          unlock: { type: "evidence", requires: ["ev-gl-journals"] },
         },
       ],
     },
@@ -71,10 +73,12 @@ export const GREENLEAF: GameCase = {
         {
           q: "We checked. Meridian Distributors was registered as a customer on 29 December at 23:41, from inside the finance office, and it has never purchased anything.",
           a: "..... (the recording pauses) ..... If I answer that, I incriminate myself. I'd like counsel before continuing.",
+          unlock: { type: "evidence", requires: ["ev-gl-crm"] },
         },
         {
           q: "One last question, then. The aging report — 45 invoices moved from 'over 90 days' to 'current' at 11:45 p.m. on quarter close. That was your login.",
           a: "…I want that noted: the sales team brought me these accounts as real. Vendors overbilled us on logistics and I turned a blind eye to that too. The rot didn't start with me. It just… ended with me holding the pen.",
+          unlock: { type: "evidence", requires: ["ev-gl-aging"] },
         },
       ],
     },
@@ -171,10 +175,12 @@ export const GREENLEAF: GameCase = {
         {
           q: "Your firm billed ₹18 lakh in advisory fees to the same company you audit. How is that not a conflict?",
           a: "The engagements are firewalled and disclosed in our engagement letter's annex. (pause) I'm aware the annex is 40 pages long and the disclosure is on page 38.",
+          unlock: { type: "evidence", requires: ["ev-gl-certs"] },
         },
         {
           q: "One of the 'confirmed' distributors turned out to be a mail drop registered the week before year-end.",
           a: "Then the confirmations were engineered, and I confirmed a fiction. I'll be revisiting every opinion I've signed for this client. So will my insurer, I imagine.",
+          unlock: { type: "evidence", requires: ["ev-gl-certs"] },
         },
       ],
     },
@@ -478,18 +484,70 @@ export const GREENLEAF: GameCase = {
       answerId: "f",
     },
   },
-  /* Free discovery until the full chain is authored for this case. */
+  /* ── Discovery chain ─────────────────────────────────────────────
+   * Scene:  brief folder → the mandate (free); financials screen → the
+   *         paradox (free); desk terminal → the unlocked FG017 session
+   *         (free) — the lead that opens the locked cabinet (code FG017)
+   *         holding the customer-master extract.
+   * Records: "fg017"/"fin-03" → the journal log (needs the terminal lead);
+   *         "bonus" → the committee minute; "coldchain" → vendor subplot;
+   *         "auditor" → workpapers; "expansion" → the capex red herring;
+   *         "emails" → the instruction chain.
+   * Interview: pressing Amit Desai surfaces the aging-report snapshots;
+   *         Gupta's follow-ups gate on the CRM extract and aging report.
+   * Lab:    ₹21.6 Cr booked − ₹3.1 Cr collected → 18.5 (₹ crore).
+   */
   unlocks: {
-    "ev-gl-journals": { type: "free" },
-    "ev-gl-crm": { type: "free" },
-    "ev-gl-aging": { type: "free" },
+    "ev-gl-brief": { type: "free" },
+    "ev-gl-financials": { type: "free" },
+    "ev-gl-crm": { type: "free" }, // delivered via the locked-cabinet hotspot
+    "ev-gl-journals": { type: "keyword", keywords: ["fg017", "fin-03"] },
+    "ev-gl-bonus": { type: "keyword", keywords: ["bonus", "compensation"] },
+    "ev-gl-vendor": {
+      type: "keyword",
+      keywords: ["coldchain", "vendor", "freight"],
+    },
+    "ev-gl-certs": { type: "keyword", keywords: ["certs", "auditor", "advisory"] },
+    "ev-gl-redherring": {
+      type: "keyword",
+      keywords: ["expansion", "capex", "phase iii"],
+    },
+    "ev-gl-emails": { type: "keyword", keywords: ["emails", "instruction"] },
+    "ev-gl-aging": { type: "suspectAsked", suspectId: "amit-desai" },
   },
-  clues: [],
-  hotspots: [],
+  clues: [
+    {
+      id: "clue-fg017",
+      text: "The terminal is still logged in — user FG017. Someone left it unlocked.",
+    },
+  ],
+  hotspots: [
+    {
+      id: "hs-brief-folder",
+      label: "Case brief folder",
+      reveals: { kind: "evidence", id: "ev-gl-brief" },
+    },
+    {
+      id: "hs-financials-screen",
+      label: "Financials screen",
+      reveals: { kind: "evidence", id: "ev-gl-financials" },
+    },
+    {
+      id: "hs-desk-terminal",
+      label: "Desk terminal",
+      reveals: { kind: "clue", id: "clue-fg017" },
+    },
+    {
+      id: "hs-locked-cabinet",
+      label: "Locked records cabinet",
+      reveals: { kind: "evidence", id: "ev-gl-crm" },
+      locked: { requiresClue: "clue-fg017", combination: "FG017" },
+    },
+  ],
   puzzle: {
     prompt:
-      "Chain — to be authored: enter the checkpoint value recorded in the audit log.",
-    answer: "0",
-    toleranceHint: "Placeholder — replace when the Greenleaf discovery chain is authored.",
+      "Compute the fictitious revenue that was never collected: the ₹ crore booked against the six new distributors minus the ₹ crore actually collected from them. Enter the difference.",
+    answer: "18.5",
+    toleranceHint: "One decimal place, ₹ crore — 21.6 minus 3.1.",
   },
 };

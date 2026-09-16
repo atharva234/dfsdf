@@ -46,10 +46,12 @@ export const NOVATECH: GameCase = {
         {
           q: "Procurement rules say anything above ₹25 lakh needs your sign-off. ₹44.4 lakh is above ₹25 lakh.",
           a: "And if that revised file had reached my desk, I would have asked why a ₹7.4 lakh quantity change landed one day after approval. It didn't reach my desk. That's precisely the question you should be asking — whose job was it to bring it to me?",
+          unlock: { type: "evidence", requires: ["ev-nv-doc-c"] },
         },
         {
           q: "The CFO approves payments. TX-015 for ₹37 lakh cleared on 18 September.",
           a: "TX-015 matched the approved PO value exactly. What I never saw was TX-017 — a ₹7.4 lakh 'electronic components' payment booked as routine eleven days later. Routine payments don't route to the CFO. That is the gap someone used.",
+          unlock: { type: "evidence", requires: ["ev-nv-doc-c"] },
         },
       ],
     },
@@ -74,6 +76,7 @@ export const NOVATECH: GameCase = {
         {
           q: "A ₹7.4 lakh change, approved in three hours, with no CFO routing. Does that feel right now?",
           a: "(pause) The rulebook says any change to an approved PO must be documented and approved. It was — by me. What the rulebook doesn't say is who checks the document before it reaches me. Apparently, nobody. Now I know why that rule exists.",
+          unlock: { type: "evidence", requires: ["ev-nv-doc-c"] },
         },
       ],
     },
@@ -98,6 +101,7 @@ export const NOVATECH: GameCase = {
         {
           q: "In February, Neha Sharma told you to hold TX-030 until the revised approval was visible. You processed it a day later.",
           a: "The approval appeared. That's what I was waiting for. (pause) Look — if the revised approvals themselves were the fraud, then the control I'm standing on is made of paper. Every number I paid matched a document. The documents were the problem.",
+          unlock: { type: "evidence", requires: ["ev-nv-doc-d"] },
         },
       ],
     },
@@ -122,6 +126,7 @@ export const NOVATECH: GameCase = {
         {
           q: "You also uploaded their invoice — AL-007 — and told Vikram Joshi the revised approval was 'available in the system' before the balance payment. Then in February the identical pattern repeats on PO-2720, again keyed by you.",
           a: "..... (the recording continues for 9 minutes) ..... I want to amend my earlier statements. I'd like counsel present before I answer anything else.",
+          unlock: { type: "evidence", requires: ["ev-nv-doc-c", "ev-nv-doc-d"] },
         },
       ],
     },
@@ -146,6 +151,7 @@ export const NOVATECH: GameCase = {
         {
           q: "You review financial activity. What did September and February have in common?",
           a: "The same executive, the same vendor, the same move: inflate the quantity after approval, ride it through on a revised document, pay the excess as 'routine'. Revenue rose ₹23 crore; procurement rose ₹24 crore. The difference between this company's growth and its spending is sitting in that pattern.",
+          unlock: { type: "evidence", requires: ["ev-nv-doc-c", "ev-nv-doc-d"] },
         },
       ],
     },
@@ -688,18 +694,83 @@ export const NOVATECH: GameCase = {
       answerId: "b",
     },
   },
-  /* Free discovery until the full chain is authored for this case. */
+  /* ── Discovery chain ──────────────────────────────────────────────
+   * Scene:  case file → the mandate (free); vendor cabinet → comparison
+   *         matrix (free); desk drawer → sticky note re PO-2571 (free);
+   *         noticeboard → half-erased whiteboard note re PO-2720 (free);
+   *         locked cabinet (code 2571, from the sticky note) → Document Set C
+   * Records: "2720"/"po-2720" → Set D (needs the whiteboard lead);
+   *         "2618"/"zenith" → Sets E/F; "2694"/"brightline" → Sets G/H;
+   *         "tx-017"/"tx-030" → the ledger; "karan"/"bhatia" → Comms I
+   * Interview: pressing Neha surfaces Comms II; pressing Sahil surfaces
+   *         the audit log; follow-up questions gate on Sets C and D.
+   * Lab:    (400 × ₹1,850) + (100 × ₹1,900) → 930000
+   */
   unlocks: {
-    "ev-nv-doc-c": { type: "free" },
-    "ev-nv-doc-d": { type: "free" },
-    "ev-nv-audit-log": { type: "free" },
+    "ev-nv-case-brief": { type: "free" },
+    "ev-nv-vendor-comparison": { type: "free" },
+    "ev-nv-doc-c": { type: "free" }, // delivered via the locked-cabinet hotspot
+    "ev-nv-doc-d": { type: "keyword", keywords: ["2720", "po-2720"] },
+    "ev-nv-doc-ef": { type: "keyword", keywords: ["2618", "po-2618", "zenith"] },
+    "ev-nv-doc-gh": { type: "keyword", keywords: ["2694", "po-2694", "brightline"] },
+    "ev-nv-transactions": {
+      type: "keyword",
+      keywords: ["tx-017", "tx-030", "ledger", "transaction"],
+    },
+    "ev-nv-financials": { type: "keyword", keywords: ["financials", "revenue"] },
+    "ev-nv-vendor-precision": { type: "keyword", keywords: ["precision"] },
+    "ev-nv-vendor-novatech": {
+      type: "keyword",
+      keywords: ["nova-tech", "novatech", "v002"],
+    },
+    "ev-nv-vendor-zenith": { type: "keyword", keywords: ["zenith"] },
+    "ev-nv-vendor-brightline": { type: "keyword", keywords: ["brightline"] },
+    "ev-nv-comms-1": { type: "keyword", keywords: ["karan", "bhatia"] },
+    "ev-nv-comms-2": { type: "suspectAsked", suspectId: "neha-sharma" },
+    "ev-nv-audit-log": { type: "suspectAsked", suspectId: "sahil-mehta" },
   },
-  clues: [],
-  hotspots: [],
+  clues: [
+    {
+      id: "clue-po-2571",
+      text: "A sticky note on the desk: 'PO-2571 — check the revision date against the approval date.'",
+    },
+    {
+      id: "clue-po-2720",
+      text: "A whiteboard note, half-erased: 'Feb — did it happen again? Same vendor. Check 2720.'",
+    },
+  ],
+  hotspots: [
+    {
+      id: "hs-case-file",
+      label: "Investigation case file",
+      reveals: { kind: "evidence", id: "ev-nv-case-brief" },
+    },
+    {
+      id: "hs-vendor-cabinet",
+      label: "Vendor cabinet",
+      reveals: { kind: "evidence", id: "ev-nv-vendor-comparison" },
+    },
+    {
+      id: "hs-desk-drawer",
+      label: "Desk drawer",
+      reveals: { kind: "clue", id: "clue-po-2571" },
+    },
+    {
+      id: "hs-noticeboard",
+      label: "Noticeboard",
+      reveals: { kind: "clue", id: "clue-po-2720" },
+    },
+    {
+      id: "hs-locked-cabinet",
+      label: "Locked records cabinet",
+      reveals: { kind: "evidence", id: "ev-nv-doc-c" },
+      locked: { requiresClue: "clue-po-2571", combination: "2571" },
+    },
+  ],
   puzzle: {
     prompt:
-      "Chain — to be authored: enter the checkpoint value recorded in the audit log.",
-    answer: "0",
-    toleranceHint: "Placeholder — replace when the Nova-Tech discovery chain is authored.",
+      "Total the inflated value across both revised Nova-Tech purchase orders: the added quantity on PO-2571 × its unit price, plus the added quantity on PO-2720 × its unit price. Enter the total unapproved value, in rupees.",
+    answer: "930000",
+    toleranceHint: "Digits only, in rupees — (400 × ₹1,850) + (100 × ₹1,900).",
   },
 };

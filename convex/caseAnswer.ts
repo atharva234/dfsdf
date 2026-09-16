@@ -37,9 +37,49 @@ export const KEYWORD_INDEX: Record<
       ["audit", ["ev-orgchart"]],
     ]),
   },
-  // Full chains come later; these cases have no keyword-gated evidence yet.
-  "nova-tech": { terms: new Map([]) },
-  "greenleaf-049": { terms: new Map([]) },
+  "nova-tech": {
+    terms: new Map<string, string[]>([
+      ["2720", ["ev-nv-doc-d"]],
+      ["po-2720", ["ev-nv-doc-d"]],
+      ["2618", ["ev-nv-doc-ef"]],
+      ["po-2618", ["ev-nv-doc-ef"]],
+      ["zenith", ["ev-nv-doc-ef", "ev-nv-vendor-zenith"]],
+      ["2694", ["ev-nv-doc-gh"]],
+      ["po-2694", ["ev-nv-doc-gh"]],
+      ["brightline", ["ev-nv-doc-gh", "ev-nv-vendor-brightline"]],
+      ["tx-017", ["ev-nv-transactions"]],
+      ["tx-030", ["ev-nv-transactions"]],
+      ["ledger", ["ev-nv-transactions"]],
+      ["transaction", ["ev-nv-transactions"]],
+      ["financials", ["ev-nv-financials"]],
+      ["revenue", ["ev-nv-financials"]],
+      ["precision", ["ev-nv-vendor-precision"]],
+      ["nova-tech", ["ev-nv-vendor-novatech"]],
+      ["novatech", ["ev-nv-vendor-novatech"]],
+      ["v002", ["ev-nv-vendor-novatech"]],
+      ["karan", ["ev-nv-comms-1"]],
+      ["bhatia", ["ev-nv-comms-1"]],
+    ]),
+  },
+  "greenleaf-049": {
+    terms: new Map<string, string[]>([
+      ["fg017", ["ev-gl-journals"]],
+      ["fin-03", ["ev-gl-journals"]],
+      ["bonus", ["ev-gl-bonus"]],
+      ["compensation", ["ev-gl-bonus"]],
+      ["coldchain", ["ev-gl-vendor"]],
+      ["vendor", ["ev-gl-vendor"]],
+      ["freight", ["ev-gl-vendor"]],
+      ["certs", ["ev-gl-certs"]],
+      ["auditor", ["ev-gl-certs"]],
+      ["advisory", ["ev-gl-certs"]],
+      ["expansion", ["ev-gl-redherring"]],
+      ["capex", ["ev-gl-redherring"]],
+      ["phase iii", ["ev-gl-redherring"]],
+      ["emails", ["ev-gl-emails"]],
+      ["instruction", ["ev-gl-emails"]],
+    ]),
+  },
 };
 
 /**
@@ -56,15 +96,24 @@ export const CLUE_GATES: Record<string, Record<string, string>> = {
     // bypasses the Crime Scene entirely.
     "ev-orgchart": "clue-audit-crumpled",
   },
-  "nova-tech": {},
-  "greenleaf-049": {},
+  "nova-tech": {
+    // The half-erased whiteboard note (noticeboard hotspot) is what
+    // authorizes the PO-2720 search; without the gate "2720" on minute one
+    // would bypass the Crime Scene.
+    "ev-nv-doc-d": "clue-po-2720",
+  },
+  "greenleaf-049": {
+    // The unlocked terminal session (desk-terminal hotspot) is what
+    // authorizes the FG017 search — the user ID itself is the lead.
+    "ev-gl-journals": "clue-fg017",
+  },
 };
 
 /** Forensics-Lab gate answers, keyed by case id (normalized on compare). */
 export const PUZZLE_ANSWERS: Record<string, string> = {
   "vanishing-ledger": "226",
-  "nova-tech": "0", // placeholder until the chain is authored
-  "greenleaf-049": "0", // placeholder until the chain is authored
+  "nova-tech": "930000",
+  "greenleaf-049": "18.5",
 };
 
 export const ANSWER_KEYS: Record<string, CaseAnswerKey> = {

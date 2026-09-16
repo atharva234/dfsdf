@@ -81,8 +81,11 @@ export type Hotspot = {
   id: string;
   label: string;
   reveals: { kind: "evidence" | "clue"; id: string };
-  /** When set, the hotspot demands the given clue before it opens. */
-  locked?: { requiresClue: string };
+  /**
+   * When set, the hotspot stays locked until the gating clue is discovered —
+   * and then demands the exact code typed into its entry field.
+   */
+  locked?: { requiresClue: string; combination: string };
 };
 
 /** The Forensics Lab gate — solved before the team may file a verdict. */

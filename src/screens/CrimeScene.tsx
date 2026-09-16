@@ -190,18 +190,11 @@ export function CrimeScene({
 
   const handleUnlock = (hs: Hotspot, code: string) => {
     if (!hs.locked) return;
-    // The lock opens when the typed code matches the gating lead. For
-    // clue-88888 the note carries the number itself — "A/C 88888" — so the
-    // code is the numeric token(s) in the clue text; otherwise fall back to
-    // any distinctive word in it.
-    const gate = clueById.get(hs.locked.requiresClue);
-    const nums: string[] = gate?.text.match(/\d{4,}/g) ?? [];
-    const words: string[] = (gate?.text.match(/\b[A-Za-z]{6,}\b/g) ?? []).map((w) =>
-      w.toLowerCase(),
-    );
+    // The lock opens when the typed code matches the combination declared on
+    // the hotspot — exact (case-insensitive) match, no inference from the
+    // gating clue's text.
     const ok =
-      (nums.length > 0 && nums.includes(code)) ||
-      (nums.length === 0 && words.includes(code.toLowerCase()));
+      code.trim().toLowerCase() === hs.locked.combination.trim().toLowerCase();
     if (ok) {
       if (hs.reveals.kind === "evidence") onDiscoverEvidence(hs.reveals.id);
       else onDiscoverClue(hs.reveals.id);
