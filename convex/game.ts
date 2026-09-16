@@ -267,7 +267,7 @@ export const submitSearch = mutation({
     if (changed) {
       await ctx.db.patch(teamId, { discoveredEvidenceIds: [...list] });
     }
-    return { matches: found } as const;
+    return { matches: allowed } as const;
   },
 });
 
