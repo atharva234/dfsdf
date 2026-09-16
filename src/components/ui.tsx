@@ -12,6 +12,10 @@ import {
   Network,
   Printer,
   FolderSearch,
+  Building2,
+  ReceiptText,
+  BookCopy,
+  MessagesSquare,
   X,
   Copy,
   Check,
@@ -31,6 +35,11 @@ export const KIND_ICON: Record<string, LucideIcon> = {
   "org-chart": Network,
   fax: Printer,
   "audit-report": FolderSearch,
+  "vendor-profile": Building2,
+  "po-invoice": ReceiptText,
+  directory: BookCopy,
+  ledger: ScrollText,
+  "comm-log": MessagesSquare,
 };
 
 /* ─────────────── Typewriter ─────────────── */
@@ -115,6 +124,8 @@ export function Countdown({ endsAt, onExpire }: { endsAt: number; onExpire?: () 
 export function CaseHeader({
   roomCode,
   teamName,
+  caseNo,
+  caseTitle,
   evidenceCollected,
   evidenceTotal,
   hintsUsed,
@@ -126,6 +137,8 @@ export function CaseHeader({
 }: {
   roomCode: string;
   teamName: string;
+  caseNo: string;
+  caseTitle: string;
   evidenceCollected: number;
   evidenceTotal: number;
   hintsUsed: number;
@@ -154,8 +167,8 @@ export function CaseHeader({
             <Gavel className="h-4 w-4 text-gold" strokeWidth={1.75} />
           </span>
           <div className="leading-tight">
-            <div className="mono-label">Case VL-1995-88888</div>
-            <div className="display text-sm text-paper">The Vanishing Ledger</div>
+            <div className="mono-label">Case {caseNo}</div>
+            <div className="display text-sm text-paper">{caseTitle}</div>
           </div>
         </div>
 

@@ -7,7 +7,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { FolderSearch, Users, StickyNote, Siren } from "lucide-react";
-import type { EvidenceDoc } from "../game/evidence";
+import type { EvidenceDoc, GameCase } from "../game/cases/types";
 import { useGameStore, collectEvidence, revealHint } from "../game/store";
 import { EvidenceBoard, DocumentModal } from "../components/EvidenceBoard";
 import { SuspectsPanel } from "../components/SuspectsPanel";
@@ -27,6 +27,7 @@ const TABS: { key: Tab; label: string; icon: typeof FolderSearch; blurb: string 
 ];
 
 export function Dashboard({
+  kase,
   gameId,
   teamId,
   teamName,
@@ -38,6 +39,7 @@ export function Dashboard({
   onExpire,
   onAbandon,
 }: {
+  kase: GameCase;
   gameId: Id<"games">;
   teamId: Id<"teams">;
   teamName: string;
@@ -68,10 +70,12 @@ export function Dashboard({
       <CaseHeader
         roomCode={roomCode}
         teamName={teamName}
+        caseNo={kase.caseNo}
+        caseTitle={kase.title}
         evidenceCollected={collected.length}
-        evidenceTotal={8}
+        evidenceTotal={kase.evidence.length}
         hintsUsed={hints.length}
-        maxHints={3}
+        maxHints={kase.hints.length}
         endsAt={endsAt}
         onExpire={onExpire}
         onAccuse={onAccuse}
@@ -109,6 +113,7 @@ export function Dashboard({
           </nav>
 
           <HintSystem
+            kase={kase}
             teamId={teamId}
             revealed={hints}
             penaltyPerHint={penaltyPerHint}
@@ -141,8 +146,10 @@ export function Dashboard({
               exit={{ opacity: 0, y: -8 }}
               transition={{ duration: 0.2 }}
             >
-              {tab === "evidence" && <EvidenceBoard collected={collected} onOpen={openEvidence} />}
-              {tab === "suspects" && <SuspectsPanel />}
+              {tab === "evidence" && (
+                <EvidenceBoard kase={kase} collected={collected} onOpen={openEvidence} />
+              )}
+              {tab === "suspects" && <SuspectsPanel kase={kase} />}
               {tab === "notes" && notes && (
                 <CaseNotes gameId={gameId} notes={notes} teamName={teamName} />
               )}

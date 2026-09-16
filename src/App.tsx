@@ -25,6 +25,8 @@ import {
 import { api } from "../convex/_generated/api";
 import type { Id } from "../convex/_generated/dataModel";
 import { useGameStore, setSession, resetProgress } from "./game/store";
+import { useCase } from "./game/cases";
+import type { CaseId } from "./game/cases";
 import type { VerdictResult } from "./screens/Accusation";
 
 /* Screens are code-split: the landing page and lobby load on a minimal core
@@ -58,7 +60,7 @@ function Landing({ onStart }: { onStart: () => void }) {
             <Gavel className="h-4 w-4 text-gold" />
           </span>
           <span className="display text-sm tracking-wide text-paper">The Vanishing Ledger</span>
-          <span className="mono-label ml-2 hidden sm:block">Case VL-1995-88888</span>
+          <span className="mono-label ml-2 hidden sm:block">Financial Crime Files</span>
           <button onClick={onStart} className="btn-gold ml-auto !px-4 !py-1.5 text-sm">
             Start the Case
           </button>
@@ -88,13 +90,13 @@ function Landing({ onStart }: { onStart: () => void }) {
               transition={{ delay: 0.08 }}
               className="display text-4xl leading-[1.05] text-paper sm:text-6xl"
             >
-              One bank.
+              One room.
               <br />
-              Five days.
+              Three case files.
               <br />
-              <span className="gold-glow-text text-gold-soft">£860,000,000,</span>
+              <span className="gold-glow-text text-gold-soft">One fraud</span>
               <br />
-              gone.
+              per team.
             </motion.h1>
             <motion.p
               initial={{ opacity: 0, y: 20 }}
@@ -102,10 +104,10 @@ function Landing({ onStart }: { onStart: () => void }) {
               transition={{ delay: 0.16 }}
               className="mt-5 max-w-xl text-base leading-relaxed text-paper-dim"
             >
-              Meridian Sovereign Bank is 233 years old and it will not survive the week. No vault
-              was touched, no cheque forged — on paper, nothing is missing at all. Gather your unit
-              of up to four detectives, work one shared case file, and name who emptied the bank
-              before the clock runs out.
+              Three financial-crime cases modeled on real frauds. One live event room. Your team of
+              up to four detectives is dealt one case at random — a collapsing merchant bank, a
+              procurement scheme in Pune, a revenue mill that never collected a rupee — and must
+              name the perpetrator before the clock runs out.
             </motion.p>
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -145,31 +147,31 @@ function Landing({ onStart }: { onStart: () => void }) {
           >
             <div className="paper-sheet absolute inset-x-6 top-10 rotate-[4deg] p-5 opacity-90">
               <div className="mono-label" style={{ color: "#6b5a26" }}>
-                Exhibit B — intercepted wire
+                Exhibit C — revised purchase order
               </div>
               <div className="mt-2 font-mono text-[12px] leading-relaxed text-[#3a3122]">
-                BENEFICIARY: A. HAYES — a/c 88888888
+                PO-2571-R1 · QTY 2,000 → 2,400
                 <br />
-                AMOUNT: £35,000,000.00
+                VALUE: ₹44,40,000.00
                 <br />
-                REF: CLIENT MARGIN COLLECTIONS DUE
+                APPROVAL ROUTING: NOT FOUND
               </div>
             </div>
             <div className="paper-sheet relative rotate-[-2deg] p-6">
               <div className="mono-label" style={{ color: "#6b5a26" }}>
-                Case file 88888 — opened 06:00
+                Case rotation — dealt at random
               </div>
               <div className="mt-3 space-y-2 font-mono text-[12px] text-[#3a3122]">
-                <div>A/C 88888 — ERROR ACCOUNT (SUSPENSE)</div>
-                <div>BALANCE CARRIED FORWARD −£40,650,000</div>
-                <div>RECONCILING OFFICER: A. HAYES</div>
+                <div>01 — THE VANISHING LEDGER · merchant bank, 1995</div>
+                <div>02 — THE NOVA-TECH FILE · procurement fraud, Pune</div>
+                <div>03 — THE REVENUE SCHEME · fictitious customers</div>
               </div>
               <div className="mt-4 flex justify-between">
                 <span className="font-stamp text-[11px] uppercase tracking-[0.2em] text-blood-deep opacity-80">
                   classified
                 </span>
                 <span className="font-stamp text-[11px] uppercase tracking-[0.2em] text-verdigris opacity-80">
-                  4 suspects
+                  6 suspects
                 </span>
               </div>
             </div>
@@ -186,10 +188,10 @@ function Landing({ onStart }: { onStart: () => void }) {
       <section className="border-y border-ink-600/50 bg-ink-900/50">
         <div className="mx-auto grid max-w-6xl grid-cols-2 gap-6 px-4 py-8 sm:px-6 md:grid-cols-4">
           {[
-            { n: "1762", label: "Bank chartered" },
-            { n: "£860M", label: "Vanished in a weekend" },
-            { n: "8", label: "Exhibits to examine" },
-            { n: "60:00", label: "On the shared clock" },
+            { n: "3", label: "Cases in the rotation" },
+            { n: "1 of 3", label: "Dealt at random per team" },
+            { n: "13–18", label: "Exhibits per case file" },
+            { n: "30", label: "Teams per event room" },
           ].map((s) => (
             <div key={s.label}>
               <div className="font-mono text-2xl font-bold text-gold-soft sm:text-3xl">{s.n}</div>
@@ -211,17 +213,15 @@ function Landing({ onStart }: { onStart: () => void }) {
               icon: Users,
               t: "Assemble the unit",
               d: "Name your team, take a seat at one shared screen, and enter the event room code.",
-            },
-            {
-              icon: FileText,
-              t: "Take the briefing",
-              d: "Watch the case film, meet Meridian Sovereign, and read the 6 a.m. mandate.",
-            },
-            {
-              icon: Search,
-              t: "Work the evidence",
-              d: "Eight exhibits, four suspects, one shared notepad. Hints cost points — spend carefully.",
-            },
+            },              {
+                icon: FileText,
+                t: "Get your case",
+                d: "The server deals your team one of three cases at random. Read the briefing, learn the rules of the file.",
+              },              {
+                icon: Search,
+                t: "Work the evidence",
+                d: "Up to 18 exhibits, up to 6 suspects, one shared notepad. Hints cost points — spend carefully.",
+              },
             {
               icon: Scale,
               t: "File the verdict",
@@ -304,12 +304,12 @@ function Landing({ onStart }: { onStart: () => void }) {
             <div className="min-w-0 flex-1">
               <div className="mono-label mb-1">For event hosts</div>
               <h2 className="display text-2xl text-paper sm:text-3xl">
-                Thirty teams. One room code. One live leaderboard.
+                Thirty teams. One room code. Three cases, dealt at random.
               </h2>
               <p className="mt-2 max-w-2xl text-sm leading-relaxed text-paper-dim">
-                Open a room, broadcast the six-character code, and every team investigates the same
-                case on the same clock. Scores, times, and verdicts land on a live leaderboard the
-                moment each team files.
+                Open a room, broadcast the six-character code, and every team is dealt its own case
+                on the same clock. Scoring is per-case — teams can't copy each other's answers, and
+                every verdict lands on the live leaderboard the moment it's filed.
               </p>
             </div>
             <button onClick={onStart} className="btn-gold !px-6 !py-3 text-base">
@@ -325,10 +325,10 @@ function Landing({ onStart }: { onStart: () => void }) {
         <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-3 px-4 sm:px-6">
           <Building2 className="h-4 w-4 text-gold/60" />
           <span className="font-mono text-[11px] uppercase tracking-[0.2em] text-paper-dim/60">
-            The Vanishing Ledger — Case VL-1995-88888
+            The Vanishing Ledger — Financial Crime Files
           </span>
           <span className="ml-auto text-[11px] text-paper-dim/40">
-            A fictionalized case modeled on the 1995 collapse of Barings Bank.
+            Fictionalized training cases. Companies and individuals are fictitious.
           </span>
         </div>
       </footer>
@@ -395,11 +395,48 @@ function AppInner() {
 
   const game = useQuery(api.game.getGame, gameId ? { gameId } : "skip");
   const startGame = useMutation(api.game.startGame);
+  const ensureCaseDealt = useMutation(api.game.ensureCaseDealt);
+
+  /* ── Hooks: every hook below runs unconditionally, before ANY early return.
+     useCase used to sit behind the `!session` return, so joining a room
+     changed the hook count between renders and crashed React to a blank
+     page. Keep this section free of conditional returns. ── */
+
+  // The case the server dealt this team. Fresh joins receive it in the
+  // joinRoom response (session.caseId); legacy team rows get one dealt by
+  // the idempotent ensureCaseDealt mutation, cached here until submission.
+  const sessionCaseId = (session?.caseId as CaseId | undefined) ?? null;
+  const [legacyCaseId, setLegacyCaseId] = useState<CaseId | null>(null);
+
+  useEffect(() => {
+    // Session ended (left the case / played again) — drop the legacy deal.
+    if (!session) {
+      setLegacyCaseId(null);
+      return;
+    }
+    if (!teamId || sessionCaseId) return;
+    let cancelled = false;
+    ensureCaseDealt({ teamId })
+      .then((res) => {
+        if (!cancelled && "caseId" in res && res.caseId) {
+          setLegacyCaseId(res.caseId as CaseId);
+        }
+      })
+      .catch(() => {
+        /* the effect re-runs when session changes; nothing to do inline */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [session, teamId, sessionCaseId, ensureCaseDealt]);
 
   // If the room vanished (stale session), drop back to the landing page.
   useEffect(() => {
     if (session && game === null) resetProgress();
   }, [session, game]);
+
+  const dealtCaseId = sessionCaseId ?? legacyCaseId;
+  const kase = useCase(dealtCaseId);
 
   const begin = async () => {
     if (!session) return;
@@ -434,21 +471,37 @@ function AppInner() {
     );
   }
 
-  /* Active session */
+  /* Active session — every screen is gated on the dealt case being loaded. */
   const onClock = !!game?.startedAt;
   const screen = session.screen;
+
+  if (!kase) {
+    return (
+      <div className="grain grid min-h-screen place-items-center">
+        <div className="text-center">
+          <div className="mono-label animate-flicker">Retrieving your assigned case file…</div>
+          {!dealtCaseId && (
+            <p className="mt-3 text-xs text-paper-dim/60">
+              Waiting for the server to deal your case…
+            </p>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="grain min-h-screen">
     <Suspense fallback={<CaseLoader />}>
       {(screen === "briefing" || screen === "dashboard") && !onClock && (
         <div className="mx-auto flex min-h-screen max-w-6xl flex-col px-4 py-10 sm:px-6">
-          <Briefing onBegin={begin} roomCode={session.roomCode} />
+          <Briefing kase={kase} onBegin={begin} roomCode={session.roomCode} />
         </div>
       )}
 
       {(screen === "briefing" || screen === "dashboard") && onClock && (
         <Dashboard
+          kase={kase}
           gameId={gameId as Id<"games">}
           teamId={teamId as Id<"teams">}
           teamName={session.teamName}
@@ -465,6 +518,7 @@ function AppInner() {
       {screen === "accusation" && (
         <div className="mx-auto flex min-h-screen max-w-6xl flex-col px-4 py-10 sm:px-6">
           <Accusation
+            kase={kase}
             teamId={teamId as Id<"teams">}
             collected={collected}
             onBack={() => setSession({ ...session, screen: "dashboard" })}
@@ -479,12 +533,14 @@ function AppInner() {
       {screen === "results" && verdict && (
         <div className="mx-auto flex min-h-screen max-w-6xl flex-col px-4 py-10 sm:px-6">
           <Results
+            kase={kase}
             gameId={gameId as Id<"games">}
             teamName={session.teamName}
             verdict={verdict}
             verdictSuspectId={verdict.suspectId}
             verdictMethod={verdict.method}
             verdictEvidenceIds={verdict.evidenceIds}
+            verdictFieldAnswers={verdict.fieldAnswers}
             hintsUsed={hints.length}
             onPlayAgain={() => {
               resetProgress();

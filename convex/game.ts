@@ -12,7 +12,7 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
-import { ANSWER_KEY } from "./caseAnswer";
+import { ANSWER_KEYS } from "./caseAnswer";
 
 const CODE_ALPHABET = "ACDEFGHJKLMNPQRTUVWXY34679";
 const MAX_TEAMS_PER_ROOM = 30;
@@ -78,9 +78,12 @@ export const joinRoom = mutation({
     if (playerCount < 1 || playerCount > MAX_PLAYERS_PER_TEAM) {
       return { error: "Team size must be between 1 and 4." } as const;
     }
+    // Deal each team one of the three cases at random (uniform).
+    const caseId = CASE_IDS[Math.floor(Math.random() * CASE_IDS.length)];
     const teamId = await ctx.db.insert("teams", {
       gameId: game._id,
       name,
+      caseId,
       playerCount,
       hintsUsed: 0,
       score: 0,
@@ -90,7 +93,7 @@ export const joinRoom = mutation({
       joinedAt: Date.now(),
     });
     await ctx.db.patch(game._id, { teamCount: game.teamCount + 1 });
-    return { teamId, gameId: game._id, roomCode: game.roomCode } as const;
+    return { teamId, gameId: game._id, roomCode: game.roomCode, caseId } as const;
   },
 });
 
@@ -113,6 +116,24 @@ export const getGameByCode = query({
 export const getTeam = query({
   args: { teamId: v.id("teams") },
   handler: async (ctx, { teamId }) => await ctx.db.get(teamId),
+});
+
+/** The case this team was dealt — resolved once at join time. */
+/**
+ * Resolve (and persist) the case this team plays. Teams joining after this
+ * deploy were dealt a case at join time; legacy rows get one dealt here, once.
+ * Idempotent — safe to call on every app boot.
+ */
+export const ensureCaseDealt = mutation({
+  args: { teamId: v.id("teams") },
+  handler: async (ctx, { teamId }) => {
+    const team = await ctx.db.get(teamId);
+    if (!team) return { error: "Team not found." } as const;
+    if (team.caseId) return { caseId: team.caseId } as const;
+    const caseId = CASE_IDS[Math.floor(Math.random() * CASE_IDS.length)];
+    await ctx.db.patch(teamId, { caseId });
+    return { caseId } as const;
+  },
 });
 
 export const getTeams = query({
@@ -139,6 +160,8 @@ export const startGame = mutation({
     return { ok: true } as const;
   },
 });
+
+const CASE_IDS = ["vanishing-ledger", "nova-tech", "greenleaf-049"] as const;
 
 /**
  * Reveal a hint: one shared hint budget per team, each reveal costs points.
@@ -199,11 +222,17 @@ export const getNotes = query({
 export const submitVerdict = mutation({
   args: {
     teamId: v.id("teams"),
+    caseId: v.string(),
     suspectId: v.string(),
     method: v.string(),
     evidenceIds: v.array(v.string()),
+    // Answers to the case's scored dropdown fields (e.g. vendor, impact band).
+    fieldAnswers: v.record(v.string(), v.string()),
   },
-  handler: async (ctx, { teamId, suspectId, method, evidenceIds }) => {
+  handler: async (
+    ctx,
+    { teamId, caseId, suspectId, method, evidenceIds, fieldAnswers },
+  ) => {
     const team = await ctx.db.get(teamId);
     if (!team) return { error: "Team not found." } as const;
     if (team.finishedAt) return { error: "Verdict already submitted." } as const;
@@ -211,26 +240,37 @@ export const submitVerdict = mutation({
     if (!game) return { error: "Room not found." } as const;
     if (!game.startedAt) return { error: "The clock has not started." } as const;
 
+    // Score against the key for the case THE TEAM WAS DEALT — not the one the
+    // client claims. A mismatch is either a stale tab or tampering.
+    const key = ANSWER_KEYS[team.caseId ?? ""];
+    if (!key) return { error: "No case dealt to this team." } as const;
+
     const now = Date.now();
     const timeMs = now - game.startedAt;
-    const correct = suspectId === ANSWER_KEY.suspectId;
+    const correct = suspectId === key.suspectId;
+
+    // Scored verdict fields: +250 per correct dropdown (vendor / impact band).
+    let fieldScore = 0;
+    for (const [field, answer] of Object.entries(key.fieldAnswers)) {
+      if (fieldAnswers[field] === answer) fieldScore += 250;
+    }
 
     // Partial credit for the paper trail: +400 per correctly identified
     // exhibit, −200 per red herring, floored at zero.
     const found = new Set(evidenceIds);
     let evidenceScore = 0;
-    for (const id of ANSWER_KEY.evidenceIds) {
+    for (const id of key.evidenceIds) {
       if (found.has(id)) evidenceScore += 400;
     }
     for (const id of evidenceIds) {
-      if (!ANSWER_KEY.evidenceIds.includes(id)) evidenceScore -= 200;
+      if (!key.evidenceIds.includes(id)) evidenceScore -= 200;
     }
     evidenceScore = Math.max(0, evidenceScore);
 
     const elapsedSeconds = Math.floor(timeMs / 1000);
     const hintPenalty = team.hintsUsed * game.penaltyPerHint;
     const raw = 10000 - elapsedSeconds * 10 - hintPenalty - (correct ? 0 : 500);
-    const score = Math.max(0, Math.round(raw + evidenceScore));
+    const score = Math.max(0, Math.round(raw + evidenceScore + fieldScore));
 
     await ctx.db.patch(teamId, {
       correct,
@@ -239,6 +279,8 @@ export const submitVerdict = mutation({
       verdictSuspectId: suspectId,
       verdictMethod: method.slice(0, 600),
       verdictEvidenceIds: evidenceIds,
+      verdictCaseId: caseId,
+      verdictFields: fieldAnswers,
       finishedAt: now,
     });
 
@@ -293,6 +335,7 @@ export type TeamDoc = {
   _id: Id<"teams">;
   gameId: Id<"games">;
   name: string;
+  caseId: string;
   playerCount: number;
   hintsUsed: number;
   score: number;
@@ -301,6 +344,8 @@ export type TeamDoc = {
   verdictSuspectId?: string;
   verdictMethod?: string;
   verdictEvidenceIds: string[];
+  verdictCaseId?: string;
+  verdictFields?: Record<string, string>;
   finishedAt?: number;
   joinedAt: number;
 };

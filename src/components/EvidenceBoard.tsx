@@ -1,17 +1,18 @@
 /**
  * Evidence Board — corkboard grid of clickable evidence cards.
  * Cards flip to "collected" once viewed; each opens a modal rendering the
- * full document as a scanned/digital record.
+ * full document as a scanned/digital record. Exhibits come from the team's
+ * assigned case dossier (passed down as props).
  */
 
+import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import {
   Check,
   Pin,
   FileText,
 } from "lucide-react";
-import { EVIDENCE } from "../game/evidence";
-import type { EvidenceDoc, EvidenceLine } from "../game/evidence";
+import type { EvidenceDoc, EvidenceLine, GameCase } from "../game/cases/types";
 import { KIND_ICON, Modal, Stamp, CloseButton } from "./ui";
 
 function DocLine({ line }: { line: EvidenceLine }) {
@@ -100,17 +101,26 @@ function DocumentModal({
 }
 
 export function EvidenceBoard({
+  kase,
   collected,
   onOpen,
 }: {
+  kase: GameCase;
   collected: string[];
   onOpen: (doc: EvidenceDoc) => void;
 }) {
+  const groups = useMemo(
+    () => [...new Set(kase.evidence.map((d) => d.group))],
+    [kase],
+  );
+  const [group, setGroup] = useState<string | null>(null);
+  const shown = group ? kase.evidence.filter((d) => d.group === group) : kase.evidence;
+
   return (
     <div className="corkboard rounded-xl border border-ink-700/80 p-4 shadow-pin sm:p-6">
-      <div className="mb-5 flex items-center justify-between">
+      <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
         <div>
-          <div className="mono-label">Evidence Locker — {collected.length}/{EVIDENCE.length} reviewed</div>
+          <div className="mono-label">Evidence Locker — {collected.length}/{kase.evidence.length} reviewed</div>
           <h3 className="display text-lg text-paper">Case Exhibits</h3>
         </div>
         <div className="flex items-center gap-1.5 font-mono text-[11px] text-paper-dim/70">
@@ -119,8 +129,26 @@ export function EvidenceBoard({
         </div>
       </div>
 
+      {groups.length > 1 && (
+        <div className="mb-4 flex flex-wrap gap-1.5">
+          <FilterChip
+            label={`All (${kase.evidence.length})`}
+            active={group === null}
+            onClick={() => setGroup(null)}
+          />
+          {groups.map((g) => (
+            <FilterChip
+              key={g}
+              label={`${g} (${kase.evidence.filter((d) => d.group === g).length})`}
+              active={group === g}
+              onClick={() => setGroup(g)}
+            />
+          ))}
+        </div>
+      )}
+
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {EVIDENCE.map((doc, i) => {
+        {shown.map((doc, i) => {
           const isCollected = collected.includes(doc.id);
           const Icon = KIND_ICON[doc.kind];
           const rotation = ((i * 37) % 7) - 3; // deterministic scatter: -3..3 deg
@@ -165,7 +193,7 @@ export function EvidenceBoard({
                   </span>
                 )}
               </div>
-              <div className="mono-label mb-1">{doc.kind.replace("-", " ")}</div>
+              <div className="mono-label mb-1">{doc.kind.replace("-", " ")} · {doc.group}</div>
               <div className="display text-[15px] leading-snug text-paper group-hover:text-gold-soft">
                 {doc.title}
               </div>
@@ -185,3 +213,26 @@ export function EvidenceBoard({
 }
 
 export { DocumentModal };
+
+function FilterChip({
+  label,
+  active,
+  onClick,
+}: {
+  label: string;
+  active: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`rounded-full border px-3 py-1 font-mono text-[11px] uppercase tracking-wider transition-colors ${
+        active
+          ? "border-gold/60 bg-gold/15 text-gold-soft"
+          : "border-ink-500/60 bg-ink-900/50 text-paper-dim hover:border-gold/30 hover:text-paper"
+      }`}
+    >
+      {label}
+    </button>
+  );
+}

@@ -45,6 +45,8 @@ export function Lobby({ onEntered }: { onEntered?: () => void }) {
           roomCode: joined.roomCode,
           teamName: teamName.trim().slice(0, 40) || "Unnamed Team",
           playerCount,
+          // The case is dealt server-side at join and returned here.
+          caseId: (joined as { caseId?: string }).caseId ?? null,
           screen: "briefing",
         });
       } else {
@@ -69,6 +71,7 @@ export function Lobby({ onEntered }: { onEntered?: () => void }) {
           roomCode: res.roomCode,
           teamName: teamName.trim().slice(0, 40) || "Unnamed Team",
           playerCount,
+          caseId: (res as { caseId?: string }).caseId ?? null,
           screen: "briefing",
         });
       }
@@ -153,7 +156,7 @@ export function Lobby({ onEntered }: { onEntered?: () => void }) {
                 onChange={(e) => setRoomCode(e.target.value.toUpperCase())}
               />
               <p className="mt-1.5 text-xs text-paper-dim/60">
-                Up to 30 teams share one event room.
+                Up to 30 teams share one event room — each is dealt its own case.
               </p>
             </div>
           )}
@@ -204,11 +207,11 @@ export function Lobby({ onEntered }: { onEntered?: () => void }) {
           <p className="text-center text-xs leading-relaxed text-paper-dim/60">
             {mode === "create" ? (
               <>
-                You'll receive a 6-character room code — share it with up to 30 event teams. Your
-                team briefs first; other teams join with the code.
+                You'll receive a 6-character room code — share it with up to 30 event teams. Every
+                team gets one of 3 cases at random.
               </>
             ) : (
-              <>You'll join the room's shared clock the moment you open your case file.</>
+              <>The server deals your team one of three cases the moment you join.</>
             )}
           </p>
         </div>

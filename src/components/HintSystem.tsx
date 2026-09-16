@@ -7,17 +7,19 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Lightbulb, TriangleAlert, Check } from "lucide-react";
-import { HINTS } from "../game/case";
+import type { GameCase } from "../game/cases/types";
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
 import { useMutation } from "convex/react";
 
 export function HintSystem({
+  kase,
   teamId,
   revealed,
   penaltyPerHint,
   onRevealed,
 }: {
+  kase: GameCase;
   teamId: Id<"teams">;
   revealed: string[];
   penaltyPerHint: number;
@@ -51,7 +53,7 @@ export function HintSystem({
       </div>
 
       <div className="space-y-2.5">
-        {HINTS.map((hint, i) => {
+        {kase.hints.map((hint, i) => {
           const isRevealed = revealed.includes(hint.id);
           const isConfirming = confirming === hint.id;
           return (

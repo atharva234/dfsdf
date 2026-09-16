@@ -62,7 +62,7 @@ export function CaseNotes({
       <div className="mb-5 flex gap-2">
         <input
           className="input-noir flex-1"
-          placeholder="Jot a deduction… e.g. '88888 → personal account 88888888?'"
+          placeholder="Jot a deduction… e.g. 'AL-004: same user changed the qty'"
           value={draft}
           maxLength={280}
           onChange={(e) => setDraft(e.target.value)}

@@ -1,13 +1,12 @@
 /**
- * Suspects Panel — four profile cards that expand into typewriter
- * interview transcripts.
+ * Suspects Panel — profile cards that expand into typewriter
+ * interview transcripts. Roster comes from the team's assigned case.
  */
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronDown, MapPin, UserRound, Quote } from "lucide-react";
-import { SUSPECTS } from "../game/case";
-import type { Suspect } from "../game/case";
+import type { GameCase, Suspect } from "../game/cases/types";
 import { Typewriter } from "./ui";
 
 function SuspectCard({ suspect, index }: { suspect: Suspect; index: number }) {
@@ -121,16 +120,16 @@ function SuspectCard({ suspect, index }: { suspect: Suspect; index: number }) {
   );
 }
 
-export function SuspectsPanel() {
+export function SuspectsPanel({ kase }: { kase: GameCase }) {
   return (
     <div className="space-y-3">
       <div className="mb-1 flex items-center justify-between">
         <div>
-          <div className="mono-label">Persons of interest — 4</div>
+          <div className="mono-label">Persons of interest — {kase.suspects.length}</div>
           <h3 className="display text-lg text-paper">The Interview Room</h3>
         </div>
       </div>
-      {SUSPECTS.map((s, i) => (
+      {kase.suspects.map((s, i) => (
         <SuspectCard key={s.id} suspect={s} index={i} />
       ))}
     </div>

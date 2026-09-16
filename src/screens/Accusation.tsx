@@ -1,13 +1,13 @@
 /**
- * Accusation — final verdict. Suspect + method + supporting exhibits, with a
- * confirmation step because submission is final and closes the team's case.
+ * Accusation — final verdict. Suspect + method + supporting exhibits, plus any
+ * case-specific scored fields (vendor / impact band), with a confirmation step
+ * because submission is final and closes the team's case.
  */
 
 import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { Gavel, TriangleAlert, Loader2, ChevronDown, FileCheck2 } from "lucide-react";
-import { SUSPECTS } from "../game/case";
-import { EVIDENCE } from "../game/evidence";
+import type { GameCase } from "../game/cases/types";
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
 import { useMutation } from "convex/react";
@@ -20,14 +20,17 @@ export type VerdictResult = {
   suspectId: string;
   method: string;
   evidenceIds: string[];
+  fieldAnswers: Record<string, string>;
 };
 
 export function Accusation({
+  kase,
   teamId,
   collected,
   onSubmit,
   onBack,
 }: {
+  kase: GameCase;
   teamId: Id<"teams">;
   collected: string[];
   onSubmit: (r: VerdictResult) => void;
@@ -36,6 +39,7 @@ export function Accusation({
   const [suspectId, setSuspectId] = useState("");
   const [method, setMethod] = useState("");
   const [evidenceIds, setEvidenceIds] = useState<string[]>([]);
+  const [fields, setFields] = useState<Record<string, string>>({});
   const [confirming, setConfirming] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -46,9 +50,20 @@ export function Accusation({
       ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id],
     );
 
+  const caseFields = useMemo(
+    () =>
+      Object.entries(kase.verdict)
+        .filter(([, f]) => f != null)
+        .map(([key, f]) => ({ key, field: f! })),
+    [kase],
+  );
+
   const canSubmit = useMemo(
-    () => suspectId !== "" && method.trim().length >= 20,
-    [suspectId, method],
+    () =>
+      suspectId !== "" &&
+      method.trim().length >= 20 &&
+      caseFields.every(({ key }) => (fields[key] ?? "") !== ""),
+    [suspectId, method, caseFields, fields],
   );
 
   const fire = async () => {
@@ -57,9 +72,11 @@ export function Accusation({
     try {
       const res = await submitVerdict({
         teamId,
+        caseId: kase.id,
         suspectId,
         method,
         evidenceIds,
+        fieldAnswers: fields,
       });
       if ("error" in res && res.error) {
         setError(res.error);
@@ -72,6 +89,7 @@ export function Accusation({
           suspectId,
           method,
           evidenceIds,
+          fieldAnswers: fields,
         });
       }
     } catch {
@@ -90,7 +108,9 @@ export function Accusation({
       className="mx-auto w-full max-w-3xl"
     >
       <div className="mb-4">
-        <div className="mono-label">Final step — file your verdict</div>
+        <div className="mono-label">
+          Final step — file your verdict · Case {kase.caseNo}
+        </div>
         <h2 className="display mt-1 flex items-center gap-3 text-2xl text-paper sm:text-3xl">
           <Gavel className="h-6 w-6 text-gold" />
           The Accusation
@@ -101,7 +121,7 @@ export function Accusation({
         {/* Suspect select */}
         <div>
           <label className="mono-label mb-1.5 block" htmlFor="suspect">
-            Who emptied the bank?
+            {kase.accusationPrompt}
           </label>
           <div className="relative">
             <select
@@ -111,7 +131,7 @@ export function Accusation({
               onChange={(e) => setSuspectId(e.target.value)}
             >
               <option value="">— Select a suspect —</option>
-              {SUSPECTS.map((s) => (
+              {kase.suspects.map((s) => (
                 <option key={s.id} value={s.id}>
                   {s.name} — {s.role}
                 </option>
@@ -129,7 +149,7 @@ export function Accusation({
           <textarea
             id="method"
             className="input-noir min-h-28 resize-y"
-            placeholder="Describe the mechanism — the account, the money trail, the control that failed…"
+            placeholder={kase.methodPlaceholder}
             value={method}
             maxLength={600}
             onChange={(e) => setMethod(e.target.value)}
@@ -139,6 +159,31 @@ export function Accusation({
           </div>
         </div>
 
+        {/* Case-specific scored fields (vendor / impact band) */}
+        {caseFields.map(({ key, field }) => (
+          <div key={key}>
+            <label className="mono-label mb-1.5 block" htmlFor={`field-${key}`}>
+              {field.label}
+            </label>
+            <div className="relative">
+              <select
+                id={`field-${key}`}
+                className="input-noir appearance-none pr-10"
+                value={fields[key] ?? ""}
+                onChange={(e) => setFields((f) => ({ ...f, [key]: e.target.value }))}
+              >
+                <option value="">— {field.placeholder} —</option>
+                {field.options.map((o) => (
+                  <option key={o.id} value={o.id}>
+                    {o.label}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-paper-dim" />
+            </div>
+          </div>
+        ))}
+
         {/* Evidence picker */}
         <div>
           <div className="mono-label mb-1.5 flex items-center justify-between">
@@ -146,7 +191,7 @@ export function Accusation({
             <span className="font-mono text-gold-soft">{evidenceIds.length} selected</span>
           </div>
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-            {EVIDENCE.map((doc) => {
+            {kase.evidence.map((doc) => {
               const picked = evidenceIds.includes(doc.id);
               const seen = collected.includes(doc.id);
               return (
@@ -214,8 +259,14 @@ export function Accusation({
           <div className="space-y-2 rounded-sm border border-[#8a7a55]/50 bg-[#cfc5a8]/40 p-4 font-mono text-[13px] text-[#332a1a]">
             <div>
               <span className="font-bold">ACCUSED:</span>{" "}
-              {SUSPECTS.find((s) => s.id === suspectId)?.name}
+              {kase.suspects.find((s) => s.id === suspectId)?.name}
             </div>
+            {caseFields.map(({ key, field }) => (
+              <div key={key}>
+                <span className="font-bold">{field.label.replace(/—.*$/, "").trim()}:</span>{" "}
+                {field.options.find((o) => o.id === fields[key])?.label ?? "—"}
+              </div>
+            ))}
             <div>
               <span className="font-bold">EXHIBITS:</span> {evidenceIds.length} attached
             </div>

@@ -21,6 +21,9 @@ export default defineSchema({
   teams: defineTable({
     gameId: v.id("games"),
     name: v.string(),
+    // The case this team was dealt (random 1-of-3 at join time). Optional so
+    // pre-rotation rows in an existing deployment still validate.
+    caseId: v.optional(v.string()),
     playerCount: v.number(),
     hintsUsed: v.number(),
     score: v.number(),
@@ -29,6 +32,8 @@ export default defineSchema({
     verdictSuspectId: v.optional(v.string()),
     verdictMethod: v.optional(v.string()),
     verdictEvidenceIds: v.array(v.string()),
+    verdictCaseId: v.optional(v.string()),
+    verdictFields: v.optional(v.record(v.string(), v.string())),
     finishedAt: v.optional(v.number()),
     joinedAt: v.number(),
   }).index("by_gameId", ["gameId"]),

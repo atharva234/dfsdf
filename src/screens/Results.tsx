@@ -15,8 +15,7 @@ import {
   Medal,
 } from "lucide-react";
 import { useState } from "react";
-import { CASE, SUSPECTS } from "../game/case";
-import { EVIDENCE_BY_ID } from "../game/evidence";
+import type { GameCase } from "../game/cases/types";
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
 import { useQuery } from "convex/react";
@@ -35,21 +34,25 @@ type LeaderRow = {
 };
 
 export function Results({
+  kase,
   gameId,
   teamName,
   verdict,
   verdictSuspectId,
   verdictMethod,
   verdictEvidenceIds,
+  verdictFieldAnswers,
   hintsUsed,
   onPlayAgain,
 }: {
+  kase: GameCase;
   gameId: Id<"games">;
   teamName: string;
   verdict: VerdictResult;
   verdictSuspectId?: string;
   verdictMethod?: string;
   verdictEvidenceIds: string[];
+  verdictFieldAnswers?: Record<string, string>;
   hintsUsed: number;
   onPlayAgain: () => void;
 }) {
@@ -57,10 +60,15 @@ export function Results({
   const leaderboard = useQuery(api.game.leaderboard, { gameId }) as LeaderRow[] | undefined;
 
   const accusedName =
-    SUSPECTS.find((s) => s.id === verdictSuspectId)?.name ?? "No suspect named";
-  const culprit = SUSPECTS.find((s) => s.id === "alex-hayes");
+    kase.suspects.find((s) => s.id === verdictSuspectId)?.name ?? "No suspect named";
+  const culprit = kase.suspects.find(
+    (s) => s.id === kase.culpritName || s.name === kase.culpritName,
+  );
 
-  const keyExhibits = ["ev-statement-88888", "ev-email-meridian", "ev-erroraccount-88"];
+  const scoredFields = Object.entries(kase.verdict).filter(([, f]) => f != null) as [
+    string,
+    NonNullable<GameCase["verdict"]["vendor"]>,
+  ][];
 
   return (
     <motion.div
@@ -86,14 +94,14 @@ export function Results({
             tone={verdict.correct ? "verdigris" : "blood"}
           />
           <span className="font-mono text-xs uppercase tracking-[0.2em] text-paper-dim">
-            {teamName} · Case {CASE.caseNo}
+            {teamName} · Case {kase.caseNo}
           </span>
         </div>
         <h2 className="display text-3xl text-paper sm:text-4xl">
           {verdict.correct ? (
-            <>You got them. The bank falls — but justice lands.</>
+            <>You got them. The case is closed.</>
           ) : (
-            <>Wrong suspect. The ledger stays vanishing.</>
+            <>Wrong suspect. The trail went cold.</>
           )}
         </h2>
         <p className="mt-2 max-w-2xl text-sm leading-relaxed text-paper-dim">
@@ -138,10 +146,10 @@ export function Results({
           {culprit?.name}, {culprit?.role.split("—")[0].trim()}
         </h3>
         <p className="mb-5 rounded-md border border-gold/25 bg-gold-faint/30 p-3 text-sm leading-relaxed text-paper">
-          {CASE.solution.headline}
+          {kase.solution.headline}
         </p>
         <ol className="space-y-3">
-          {CASE.solution.points.map((point, i) => (
+          {kase.solution.points.map((point, i) => (
             <li key={i} className="flex gap-3">
               <span className="mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-full border border-gold/40 bg-ink-900 font-mono text-[11px] text-gold-soft">
                 {i + 1}
@@ -151,11 +159,42 @@ export function Results({
           ))}
         </ol>
 
+        {/* Scored verdict fields — your answer vs the answer key */}
+        {scoredFields.length > 0 && (
+          <div className="mt-6 border-t border-ink-600/60 pt-4">
+            <div className="mono-label mb-2">Your classification calls</div>
+            <div className="flex flex-wrap gap-2">
+              {scoredFields.map(([key, field]) => {
+                const picked = verdictFieldAnswers?.[key];
+                const answer = field.answerId;
+                const right = picked === answer;
+                return (
+                  <span
+                    key={key}
+                    className={`flex items-center gap-1.5 rounded-full border px-3 py-1 font-mono text-[11px] ${
+                      right
+                        ? "border-verdigris/60 bg-verdigris/15 text-verdigris"
+                        : "border-blood/60 bg-blood-deep/20 text-red-300"
+                    }`}
+                    title={right ? "Correct call" : "Missed — the answer key is shown"}
+                  >
+                    {right ? <CheckCircle2 className="h-3 w-3" /> : <XCircle className="h-3 w-3" />}
+                    {field.label.replace(/—.*$/, "").trim()}: {field.options.find((o) => o.id === picked)?.label ?? "—"}
+                    {!right && answer && (
+                      <span className="text-paper-dim">→ {field.options.find((o) => o.id === answer)?.label}</span>
+                    )}
+                  </span>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
         <div className="mt-6 border-t border-ink-600/60 pt-4">
           <div className="mono-label mb-2">The exhibits that proved it</div>
           <div className="flex flex-wrap gap-2">
-            {keyExhibits.map((id) => {
-              const doc = EVIDENCE_BY_ID[id];
+            {kase.keyExhibitIds.map((id) => {
+              const doc = kase.evidence.find((d) => d.id === id);
               const cited = verdictEvidenceIds.includes(id);
               return (
                 <span
@@ -279,9 +318,7 @@ export function Results({
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-3 pb-10">
-        <p className="text-xs text-paper-dim/60">
-          A fictionalized case modeled on the 1995 collapse of Barings Bank.
-        </p>
+        <p className="text-xs text-paper-dim/60">{kase.footnote}</p>
         <button onClick={onPlayAgain} className="btn-ghost">
           <RotateCcw className="h-4 w-4" />
           Run the case again

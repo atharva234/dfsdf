@@ -12,6 +12,8 @@ export type Session = {
   roomCode: string;
   teamName: string;
   playerCount: number;
+  /** The case this team was dealt — assigned server-side at join time. */
+  caseId: string | null;
   screen: "briefing" | "dashboard" | "accusation" | "results";
 };
 
