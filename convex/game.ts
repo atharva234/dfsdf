@@ -12,7 +12,7 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
-import { ANSWER_KEYS, PUZZLE_ANSWERS, KEYWORD_INDEX } from "./caseAnswer";
+import { ANSWER_KEYS, PUZZLE_ANSWERS, KEYWORD_INDEX, CLUE_GATES } from "./caseAnswer";
 
 const CODE_ALPHABET = "ACDEFGHJKLMNPQRTUVWXY34679";
 const MAX_TEAMS_PER_ROOM = 30;
@@ -247,9 +247,18 @@ export const submitSearch = mutation({
     const q = term.trim().toLowerCase();
     if (!q) return { matches: [] as string[] } as const;
     const found = key.terms.get(q) ?? [];
+    // Enforce clue gates: a keyword hit for clue-gated evidence only
+    // counts if the team has already discovered the gating clue. Without
+    // this, typing "audit" on minute one would bypass the Crime Scene.
+    const gates = CLUE_GATES[caseId] ?? {};
+    const clues = new Set(team.discoveredClueIds ?? []);
+    const allowed = found.filter((id) => {
+      const gate = gates[id];
+      return !gate || clues.has(gate);
+    });
     let changed = false;
     const list = new Set(team.discoveredEvidenceIds ?? []);
-    for (const id of found) {
+    for (const id of allowed) {
       if (!list.has(id)) {
         list.add(id);
         changed = true;

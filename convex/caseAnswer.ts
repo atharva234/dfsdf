@@ -42,6 +42,24 @@ export const KEYWORD_INDEX: Record<
   "greenleaf-049": { terms: new Map([]) },
 };
 
+/**
+ * Clue gates the Records Room must honor: evidence id → the clue id that
+ * must already be in the team's `discoveredClueIds` before a matching
+ * search term delivers it. Mirrors the `unlocks` entries of type `clue`
+ * in each case dossier (the dossiers live in src/, which the backend
+ * cannot import — keep the two in sync when authoring chains).
+ */
+export const CLUE_GATES: Record<string, Record<string, string>> = {
+  "vanishing-ledger": {
+    // The crumpled memo (wastebasket hotspot) is what authorizes the
+    // audit-trail search; without the gate a first-minute "audit" query
+    // bypasses the Crime Scene entirely.
+    "ev-orgchart": "clue-audit-crumpled",
+  },
+  "nova-tech": {},
+  "greenleaf-049": {},
+};
+
 /** Forensics-Lab gate answers, keyed by case id (normalized on compare). */
 export const PUZZLE_ANSWERS: Record<string, string> = {
   "vanishing-ledger": "226",
