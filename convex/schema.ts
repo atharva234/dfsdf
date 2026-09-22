@@ -14,6 +14,10 @@ export default defineSchema({
     teamCount: v.number(),
     solvedCount: v.number(),
     isPublic: v.boolean(),
+    // Admin time controls: total granted bonus time (ms) added on top of
+    // timeLimitMs, and creation timestamp for the admin console's room list.
+    timeExtensionsMs: v.optional(v.number()),
+    createdAt: v.optional(v.number()),
   })
     .index("by_roomCode", ["roomCode"])
     .index("by_isPublic", ["isPublic"]),
@@ -51,4 +55,22 @@ export default defineSchema({
     body: v.string(),
     createdAt: v.number(),
   }).index("by_gameId", ["gameId"]),
+
+  /* Admin console credentials — one SHA-256 password record per host.
+     Passwords are hashed server-side with per-row salts; only the hash is
+     stored. Seats are enforced against adminSessions. */
+  adminAuth: defineTable({
+    username: v.string(),
+    salt: v.string(), // 64-char hex
+    passwordHash: v.string(), // 64-char hex SHA-256(salt + password)
+    createdAt: v.number(),
+  }).index("by_username", ["username"]),
+
+  /* Live admin login sessions. Hard seat cap: at most 2 concurrent admins. */
+  adminSessions: defineTable({
+    gameId: v.optional(v.id("games")),
+    token: v.string(), // random 64-char hex issued at login
+    createdAt: v.number(),
+    lastSeenAt: v.number(),
+  }).index("by_token", ["token"]),
 });

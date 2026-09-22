@@ -21,6 +21,7 @@ import {
   Search,
   FileText,
   ArrowRight,
+  KeyRound,
 } from "lucide-react";
 import { api } from "../convex/_generated/api";
 import type { Id } from "../convex/_generated/dataModel";
@@ -52,6 +53,9 @@ const Accusation = lazy(() =>
 const Results = lazy(() =>
   import("./screens/Results").then((m) => ({ default: m.Results })),
 );
+const AdminConsoleScreen = lazy(() =>
+  import("./screens/AdminConsole").then((m) => ({ default: m.AdminConsoleScreen })),
+);
 
 /* ─────────────────────────── Landing page ─────────────────────────── */
 
@@ -66,7 +70,15 @@ function Landing({ onStart }: { onStart: () => void }) {
           </span>
           <span className="display text-sm tracking-wide text-paper">The Vanishing Ledger</span>
           <span className="mono-label ml-2 hidden sm:block">Financial Crime Files</span>
-          <button onClick={onStart} className="btn-gold ml-auto !px-4 !py-1.5 text-sm">
+          <a
+            href="#/admin"
+            className="btn-ghost ml-auto !px-3.5 !py-1.5 text-sm"
+            title="Event host console — password required"
+          >
+            <KeyRound className="h-3.5 w-3.5" />
+            Host Login
+          </a>
+          <button onClick={onStart} className="btn-gold !px-4 !py-1.5 text-sm">
             Start the Case
           </button>
         </div>
@@ -127,6 +139,13 @@ function Landing({ onStart }: { onStart: () => void }) {
               <a href="#how" className="btn-ghost">
                 How it works
                 <ArrowRight className="h-4 w-4" />
+              </a>
+              <a
+                href="#/admin"
+                className="mono-label flex items-center gap-1.5 transition-colors hover:text-gold-soft"
+              >
+                <KeyRound className="h-3 w-3" />
+                Host login
               </a>
             </motion.div>
             <div className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-2 font-mono text-[11px] uppercase tracking-[0.18em] text-paper-dim/60">
@@ -332,7 +351,13 @@ function Landing({ onStart }: { onStart: () => void }) {
           <span className="font-mono text-[11px] uppercase tracking-[0.2em] text-paper-dim/60">
             The Vanishing Ledger — Financial Crime Files
           </span>
-          <span className="ml-auto text-[11px] text-paper-dim/40">
+          <a
+            href="#/admin"
+            className="mono-label ml-auto transition-colors hover:text-gold-soft"
+          >
+            Host Console
+          </a>
+          <span className="text-[11px] text-paper-dim/40">
             Fictionalized training cases. Companies and individuals are fictitious.
           </span>
         </div>
@@ -394,6 +419,17 @@ function AppInner() {
   const { session, collected, hints } = useGameStore();
   const [view, setView] = useState<"landing" | "lobby">("landing");
   const [verdict, setVerdict] = useState<VerdictResult | null>(null);
+
+  /* #/admin — the host console lives outside the team-session flow. Tracked
+     in state (not read once) so hashchange re-renders the router. */
+  const [isAdminRoute, setIsAdminRoute] = useState(
+    () => typeof window !== "undefined" && window.location.hash.startsWith("#/admin"),
+  );
+  useEffect(() => {
+    const onHash = () => setIsAdminRoute(window.location.hash.startsWith("#/admin"));
+    window.addEventListener("hashchange", onHash);
+    return () => window.removeEventListener("hashchange", onHash);
+  }, []);
 
   const gameId = session ? (session.gameId as Id<"games">) : undefined;
   const teamId = session ? (session.teamId as Id<"teams">) : undefined;
@@ -496,6 +532,15 @@ function AppInner() {
     setSession({ ...session, screen: "scene" });
   };
 
+  /* Host console route — independent of any team session. */
+  if (isAdminRoute) {
+    return (
+      <Suspense fallback={<CaseLoader />}>
+        <AdminConsoleScreen />
+      </Suspense>
+    );
+  }
+
   /* No session yet → marketing landing or lobby */
   if (!session) {
     return (
@@ -556,7 +601,8 @@ function AppInner() {
           teamName={session.teamName}
           roomCode={session.roomCode}
           startedAt={game.startedAt as number}
-          timeLimitMs={game.timeLimitMs}
+          /* Admin time grants extend the shared clock: base limit + bonus. */
+          timeLimitMs={(game.timeLimitMs ?? 0) + (game.timeExtensionsMs ?? 0)}
           penaltyPerHint={game.penaltyPerHint}
           discoveredEvidenceIds={discoveredEvidenceIds}
           discoveredClueIds={discoveredClueIds}

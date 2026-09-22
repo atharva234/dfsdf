@@ -8,6 +8,8 @@
  * @module
  */
 
+import type * as admin from "../admin.js";
+import type * as admin_sha from "../admin_sha.js";
 import type * as caseAnswer from "../caseAnswer.js";
 import type * as game from "../game.js";
 
@@ -18,6 +20,8 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  admin: typeof admin;
+  admin_sha: typeof admin_sha;
   caseAnswer: typeof caseAnswer;
   game: typeof game;
 }>;

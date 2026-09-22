@@ -44,4 +44,6 @@ process.on("SIGINT", shutdown);
 process.on("SIGTERM", shutdown);
 
 start("convex", ["run", "convex:watch"]);
-start("vite", ["run", "dev"]);
+// dev:vite is the UI-only server; "dev" itself is this orchestrator, so
+// spawning ["run", "dev"] here would recurse.
+start("vite", ["run", "dev:vite"]);
