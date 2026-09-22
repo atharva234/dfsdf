@@ -2,53 +2,34 @@ import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 
 export default defineSchema({
-  games: defineTable({
-    roomCode: v.string(),
-    difficulty: v.string(), // "standard" | "hard"
-    status: v.string(), // lobby | active | solved
-    startedAt: v.optional(v.number()),
-    timeLimitMs: v.number(),
-    maxTeams: v.number(),
-    hintsUsed: v.number(),
-    penaltyPerHint: v.number(),
-    teamCount: v.number(),
-    solvedCount: v.number(),
-    isPublic: v.boolean(),
-  })
-    .index("by_roomCode", ["roomCode"])
-    .index("by_isPublic", ["isPublic"]),
-
+  event: defineTable({
+    status: v.union(v.literal("lobby"), v.literal("round1"), v.literal("break"), v.literal("round2"), v.literal("ended")),
+    roundEndsAt: v.union(v.number(), v.null()),
+  }),
   teams: defineTable({
-    gameId: v.id("games"),
+    code: v.string(),
     name: v.string(),
-    // The case this team was dealt (random 1-of-3 at join time). Optional so
-    // pre-rotation rows in an existing deployment still validate.
-    caseId: v.optional(v.string()),
-    playerCount: v.number(),
-    // Chained-discovery progress. Evidence/clues enter these lists only via
-    // discoverEvidence / discoverClue — the UI never shows undiscovered items.
-    // Optional so legacy team rows in an existing deployment still validate.
-    discoveredEvidenceIds: v.optional(v.array(v.string())),
-    discoveredClueIds: v.optional(v.array(v.string())),
-    askedQuestionIds: v.optional(v.array(v.string())),
-    puzzleSolved: v.optional(v.boolean()),
-    hintsUsed: v.number(),
-    score: v.number(),
-    timeMs: v.number(),
-    correct: v.boolean(),
-    verdictSuspectId: v.optional(v.string()),
-    verdictMethod: v.optional(v.string()),
-    verdictEvidenceIds: v.array(v.string()),
-    verdictCaseId: v.optional(v.string()),
-    verdictFields: v.optional(v.record(v.string(), v.string())),
-    finishedAt: v.optional(v.number()),
-    joinedAt: v.number(),
-  }).index("by_gameId", ["gameId"]),
+    leaderName: v.string(),
+    members: v.array(v.string()),
+    caseId: v.string(),
+    lastSeenAt: v.number(),
+  }).index("by_code", ["code"]),
 
-  notes: defineTable({
-    gameId: v.id("games"),
-    author: v.string(),
-    body: v.string(),
-    createdAt: v.number(),
-  }).index("by_gameId", ["gameId"]),
+  submissions: defineTable({
+    teamId: v.id("teams"),
+    round: v.number(),
+    data: v.any(),
+    submittedAt: v.number(),
+  }).index("by_team_round", ["teamId", "round"]),
+
+  hintsSent: defineTable({
+    teamId: v.id("teams"),
+    text: v.string(),
+    sentAt: v.number(),
+  }).index("by_team", ["teamId"]),
+
+  caseState: defineTable({
+    caseId: v.string(),
+    releasedEvidenceIds: v.array(v.string()),
+  }).index("by_caseId", ["caseId"]),
 });

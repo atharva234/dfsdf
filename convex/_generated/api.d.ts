@@ -8,8 +8,13 @@
  * @module
  */
 
-import type * as caseAnswer from "../caseAnswer.js";
-import type * as game from "../game.js";
+import type * as answerKeys from "../answerKeys.js";
+import type * as auth from "../auth.js";
+import type * as caseState from "../caseState.js";
+import type * as event from "../event.js";
+import type * as hints from "../hints.js";
+import type * as submissions from "../submissions.js";
+import type * as teams from "../teams.js";
 
 import type {
   ApiFromModules,
@@ -18,8 +23,13 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
-  caseAnswer: typeof caseAnswer;
-  game: typeof game;
+  answerKeys: typeof answerKeys;
+  auth: typeof auth;
+  caseState: typeof caseState;
+  event: typeof event;
+  hints: typeof hints;
+  submissions: typeof submissions;
+  teams: typeof teams;
 }>;
 
 /**
